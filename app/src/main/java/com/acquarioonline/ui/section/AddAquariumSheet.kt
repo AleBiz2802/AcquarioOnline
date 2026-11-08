@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,11 +54,12 @@ fun AddAquariumSheet(
     val progress = status.progressRes()
     val busy = progress != null
     var showPassword by rememberSaveable { mutableStateOf(false) }
-
+    var pressed by rememberSaveable { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
+        val haptic = LocalHapticFeedback.current
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -136,8 +141,24 @@ fun AddAquariumSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-                Button(onClick = onSubmit, enabled = !busy) {
+                TextButton(onClick =  {
+                    onDismiss()
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }) { Text(stringResource(R.string.cancel)) }
+                Button(
+                    onClick = {
+                        pressed = !pressed
+                    onSubmit()
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(
+                                                if(pressed)
+                                                    0x807FFFD4
+                                                else
+                                                    0xFF0284C7
+                                                ),
+                        contentColor = Color.White
+                    ), enabled = !busy) {
                     Text(stringResource(R.string.send_to_arduino))
                 }
             }

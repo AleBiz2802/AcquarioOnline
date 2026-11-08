@@ -175,4 +175,8 @@
     <string name="activate_bluetooth">Enabling bluetooth</string>
     <string name="activate_bluetooth_message">Are you trying to connect the app with the aquarium? Check if Bluetooth is enabled</string>
     <string name="enable">Enable</string>
+    <string name="confirm_identity">Verify your identity</string>
+    <string name="confirm_identity_message">Identity check is needed to complete the password change</string>
+    <string name="authentication">Authentication</string>
+    <string name="long_press">Press more</string>
 </resources>

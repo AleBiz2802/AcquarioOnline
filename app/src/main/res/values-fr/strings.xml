@@ -176,5 +176,9 @@
     <string name="activate_bluetooth">Activer le Bluetooth</string>
     <string name="activate_bluetooth_message">Pour vous connecter à un aquarium, veuillez activer le Bluetooth</string>
     <string name="enable">Activer</string>
+    <string name="confirm_identity">Confirme ton identité</string>
+    <string name="confirm_identity_message">Confirme ton identité pour changer le mot de passe</string>
+    <string name="authentication">Authentification</string>
+    <string name="long_press">Appuyez plus longtemps</string>
 
 </resources>

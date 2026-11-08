@@ -83,9 +83,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import android.bluetooth.*
 import android.content.*
+import android.widget.Toast
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.material3.AlertDialogDefaults.containerColor
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 data class ManualControlState(
@@ -124,6 +134,11 @@ fun SectionScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val container = (context.applicationContext as AcquarioApp).container
+    var toastShower by remember { mutableStateOf(false) }
+    if(toastShower){
+        Toast.makeText(context, stringResource(R.string.long_press), Toast.LENGTH_SHORT).show()
+        toastShower=false
+    }
     val viewModel: SectionViewModel = viewModel(
         key = "section-${section.id}",
         factory = SectionViewModel.factory(section.id, container.aquariumRepository, container.bleProvisioner, container.mqttManager, container.notificationHelper)
@@ -228,7 +243,8 @@ fun SectionScreen(
                         },
                         onDelete = {
                             aquariumToDelete=aquarium
-                        }
+                        },
+                        onShortPress = {toastShower=true}
                     )
                 }
             }
@@ -1157,15 +1173,54 @@ private fun AquariumCard(
     onEdit: () -> Unit,
     onSensors: () -> Unit,
     onDelete: () -> Unit,
-    onUltraSoundListening: () -> Unit
+    onUltraSoundListening: () -> Unit,
+    onShortPress:() ->Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+    var isPassed500 by remember{mutableStateOf(false)}
+    val colorScope = rememberCoroutineScope()
+    val time = 500L
     ElevatedCard(
-        onClick = onClick,
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isSystemInDarkTheme()) Color(0xFF003A48) else Color(0xFFE0F2FE)
+            containerColor = Color( if(isPassed500 && !isSystemInDarkTheme())
+                                         0xADFFF9A6
+                                    else if(isPassed500 && isSystemInDarkTheme())
+                                        0x807FFFD4
+                                    else if (isSystemInDarkTheme())
+                                        0xFF003A48
+                                    else
+                                        0xFFE0F2FE)
         ),
         modifier = Modifier.fillMaxWidth()
+            .pointerInput(aquarium.id){
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = true)
+                    onShortPress()
+                    val colorChanger = colorScope.launch {
+                        isPassed500=true
+                        delay(time)
+                        isPassed500 = false
+                    }
+                    val wrongRelease = withTimeoutOrNull(time){
+
+                        while (true){
+                            val event = awaitPointerEvent()
+                            if(event.changes.any{it.changedToUp() || !it.pressed}){
+                                return@withTimeoutOrNull true
+                            }
+                        }
+                    }
+                    colorChanger.cancel()
+                    isPassed500 = false
+                    if(wrongRelease == null){
+
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onClick()
+                    }
+                }
+            }
     ) {
+
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -1183,16 +1238,27 @@ private fun AquariumCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(onClick = onEdit) {
+            IconButton(onClick = {
+                onEdit()
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }) {
                 Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.config_aquarium))
+
             }
-            IconButton(onClick = onSensors) {
+            IconButton(onClick ={onSensors()
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }) {
                 Icon(Icons.Filled.Visibility, contentDescription = stringResource(R.string.Sensors))
             }
-            IconButton(onClick = onUltraSoundListening){
+            IconButton(onClick ={onUltraSoundListening()
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+
+            }){
                 Icon(Icons.Filled.SurroundSound, contentDescription = stringResource(R.string.ultrasound))
             }
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = {onDelete()
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)

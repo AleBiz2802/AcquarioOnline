@@ -32,7 +32,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Permessi per l'utilizzo del feedback aptico-->
     <uses-permission android:name="android.permission.VIBRATE"/>
+
     <application
         android:name=".AcquarioApp"
         android:allowBackup="false"

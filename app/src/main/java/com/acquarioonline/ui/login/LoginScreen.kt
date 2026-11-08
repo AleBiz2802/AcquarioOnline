@@ -71,7 +71,8 @@ fun LoginScreen(
     var enableChangePassword by remember{mutableStateOf(false)}
     var newPassword by remember { mutableStateOf("") }
     val isSignUp = state.mode == AuthMode.SignUp
-
+    val confirmTitle = stringResource(R.string.confirm_identity)
+    val confirmMessage = stringResource(R.string.confirm_identity_message)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -196,7 +197,7 @@ fun LoginScreen(
                     onClick = {
                         if (newPassword.length >= 6) {
                             //viewModel.changePassword(state.email, newPassword)
-                            showChangePasswordDialog = false // <--- Chiude il dialog di testo
+                            showChangePasswordDialog = false
                            enableChangePassword = true
                         }
                     }
@@ -227,7 +228,6 @@ fun LoginScreen(
         ) {
             val biometricResult by biometricPromptManager._promptResult.collectAsState(initial = null)
             val enrollLauncher = rememberLauncherForActivityResult(contract= ActivityResultContracts.StartActivityForResult(),onResult={
-                println("Activity result is : $it")
             })
             LaunchedEffect(biometricResult){
                 if(biometricResult is BiometricResult.AuthSuccess){
@@ -254,12 +254,12 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         biometricPromptManager.showBiometricPrompt(
-                            title = "Conferma la tua identità",
-                            description= "Per cambiare la password è necessario confermare la propria identità"
+                            title = confirmTitle,
+                            description= confirmMessage
                         )
                     }
                 ) {
-                    Text("Autenticazione")
+                    Text(text = stringResource(R.string.authentication))
                 }
                biometricResult?.let{
                        result-> Text(
@@ -284,9 +284,6 @@ fun LoginScreen(
                            }
                        }
                    )
-
-
-
                }
             }
         }

@@ -407,7 +407,6 @@ class SectionViewModel(
         }
     }
 
-    // --- Controllo manuale / automatico ---
 
     fun onAquariumClicked(aquarium: Aquarium) {
         val currentConfig = configMap.value[aquarium.id]

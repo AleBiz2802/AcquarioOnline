@@ -10,7 +10,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.acquarioonline.ui.home.HomeScreen
 import com.acquarioonline.ui.login.*
-/** Radice dell'interfaccia: login se non c'è sessione, altrimenti la home. */
 @Composable
 fun AcquarioRoot(
     biometricPromptManager: BiometricPromptManager,

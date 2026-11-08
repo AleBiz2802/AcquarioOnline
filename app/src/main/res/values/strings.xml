@@ -188,4 +188,12 @@
     <string name="service_on">Connesso</string>
     <string name="db_service">Gestore base dati </string>
 
+
+
+    <string name="confirm_identity">Conferma la tua identità</string>
+    <string name="confirm_identity_message">E\' necessario confermare la propria identità per cambiare la password</string>
+    <string name="authentication">Autenticazione</string>
+
+
+    <string name="long_press">Premi più a lungo</string>
 </resources>
