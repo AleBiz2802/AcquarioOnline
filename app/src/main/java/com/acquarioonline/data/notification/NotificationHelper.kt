@@ -29,25 +29,6 @@ class NotificationHelper(private val context: Context) {
 
     }
 
-    fun showOutOfRangeNotification(aquariumName: String?, metricName: String, currentValue: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                return
-            }
-        }
-
-        val message = "$aquariumName "+"$metricName "+context.getString(R.string.outOfRange)+" $currentValue"
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_drop)
-            .setContentTitle(context.getString(R.string.acquariumAllarm))
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-
-        with(NotificationManagerCompat.from(context)) {
-            notify(System.currentTimeMillis().toInt(), builder.build())
-        }
-    }
     fun showStateNotification(aquariumName: String?, stateName: String, currentState: String){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {

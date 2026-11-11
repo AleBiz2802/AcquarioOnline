@@ -54,7 +54,7 @@ class AuthRepository(
             } catch (e: SQLiteConstraintException) {
                 throw EmailAlreadyInUseException()
             }
-            startSession(UserProfile(id.toString(), name, normalizedEmail))
+            //startSession(UserProfile(id.toString(), name, normalizedEmail))
         }
     }
 

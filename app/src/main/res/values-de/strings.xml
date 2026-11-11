@@ -180,4 +180,14 @@
     <string name="confirm_identity_message">Bestätige deine Identität, um das Passwort zu ändern</string>
     <string name="authentication">Authentifizierung</string>
     <string name="long_press">Länger drücken</string>
+    <string name="change_password">das Passwort ändern</string>
+    <string name="insert_new_password">Geben Sie das neue Passwort ein für: </string>
+    <string name="new_password">Das neue Passwort</string>
+
+    <string name="lights">Beleuchtung</string>
+    <string name="filter">Filter</string>
+    <string name="heat">Heizung</string>
+    <string name="activated">Anzahl Aktivierungen:</string>
+    <string name="deactivated">Anzahl Deaktivierungen:</string>
+
 </resources>

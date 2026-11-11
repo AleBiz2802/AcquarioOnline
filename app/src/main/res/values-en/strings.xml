@@ -179,4 +179,13 @@
     <string name="confirm_identity_message">Identity check is needed to complete the password change</string>
     <string name="authentication">Authentication</string>
     <string name="long_press">Press more</string>
+    <string name="change_password">To change the password</string>
+    <string name="insert_new_password">Insert the new password for: </string>
+    <string name="new_password">New Password</string>
+    <string name="lights">Lights</string>
+    <string name="filter">Filter</string>
+    <string name="heat">Heater</string>
+    <string name="activated">No. of activations:</string>
+    <string name="deactivated">No. of deactivations:</string>
+
 </resources>

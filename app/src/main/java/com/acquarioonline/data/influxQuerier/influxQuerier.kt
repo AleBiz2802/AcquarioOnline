@@ -5,6 +5,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import kotlinx.coroutines.*
 import org.json.JSONArray
+import java.time.LocalDate
 
 
 val client = OkHttpClient()
@@ -121,5 +122,18 @@ suspend fun getSensorData(aquariumName:String): List<InfluxSensorData>{
 
     } catch (e: Exception) {
         throw Exception("Eccezione durante l'eliminazione: ${e.message}")
+    }
+}
+fun List<Summarizable>.filterTodayMorning(): List<Summarizable> {
+    val today = LocalDate.now()
+
+    return this.filter { item ->
+        try {
+            val datePart = LocalDate.parse(item.time.take(10))
+            val hour = item.time.substring(11, 13).toInt()
+            datePart == today && hour in 0..7
+        } catch (e: Exception) {
+            false
+        }
     }
 }

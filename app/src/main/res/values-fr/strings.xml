@@ -180,5 +180,13 @@
     <string name="confirm_identity_message">Confirme ton identité pour changer le mot de passe</string>
     <string name="authentication">Authentification</string>
     <string name="long_press">Appuyez plus longtemps</string>
+    <string name="change_password">changer le mot de passe</string>
+    <string name="insert_new_password">Saisissez le nouveau mot de passe pour : </string>
+    <string name="new_password">Le nouveay mot de passe</string>
+    <string name="lights">Lumières</string>
+    <string name="filter">Filtre</string>
+    <string name="heat">Chauffage</string>
+    <string name="activated">N° d\'activations :</string>
+    <string name="deactivated">N° de désactivations :</string>
 
 </resources>

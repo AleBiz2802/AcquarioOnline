@@ -97,33 +97,6 @@ import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
-data class ManualControlState(
-    val acceso: Boolean = true,
-    val riempimento: Boolean = true,
-    val svuotamento: Boolean = true,
-    val luce: Boolean = false,
-    val riscaldamento: Boolean = false,
-    val showPompe: Boolean = false,
-    val showLuci: Boolean = false,
-    val showTemperatura: Boolean = false
-)
-
-
-/** Stato dei controlli manuali per acquario. Sopravvive a dialog e schermata finché il processo è attivo. */
-class ManualControlStore {
-    private val _states = MutableStateFlow<Map<Long, ManualControlState>>(emptyMap())
-    val states: StateFlow<Map<Long, ManualControlState>> = _states.asStateFlow()
-
-    fun update(aquariumId: Long, state: ManualControlState) =
-        _states.update { it + (aquariumId to state) }
-
-    fun reset(aquariumId: Long) =
-        _states.update { it - aquariumId }
-}
-
-private val manualControlStore = ManualControlStore()
-
 @Composable
 fun SectionScreen(
     section: Section,
@@ -141,13 +114,12 @@ fun SectionScreen(
     }
     val viewModel: SectionViewModel = viewModel(
         key = "section-${section.id}",
-        factory = SectionViewModel.factory(section.id, container.aquariumRepository, container.bleProvisioner, container.mqttManager, container.notificationHelper)
+        factory = SectionViewModel.factory(section.id, container.aquariumRepository, container.bleProvisioner, container.mqttManager)
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     var showAddAquarium by remember { mutableStateOf(false) }
 
-    val manualStates by manualControlStore.states.collectAsStateWithLifecycle()
     var aquariumToDelete by remember { mutableStateOf<Aquarium?>(null) }
     var aquariumToCalibrate by remember {mutableStateOf<Aquarium?>(null)}
 
@@ -258,7 +230,6 @@ fun SectionScreen(
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteAquarium(aquariumToDelete!!)
-                    manualControlStore.reset(aquariumToDelete!!.id)
                     aquariumToDelete = null
                 }) { Text(stringResource(R.string.delete)) }
             },
@@ -324,18 +295,18 @@ fun SectionScreen(
     if (state.controlForm.visible) {
         val aquarium = state.controlForm.aquarium
         if (aquarium != null) {
+            val config = state.configMap[aquarium.id]
             AquariumControlDialog(
                 form = state.controlForm,
-                manual = manualStates[aquarium.id] ?: ManualControlState(),
-                onManualChange = { manualControlStore.update(aquarium.id, it) },
+                config = config,
                 onToggleAuto = { auto ->
                     viewModel.onAutoModeToggle(auto)
-
-                    if (auto) manualControlStore.reset(aquarium.id)
                 },
                 onShowCharts = { viewModel.onShowChartsClicked(aquarium) },
                 onShowSummary = {viewModel.onShowSummaryClicked(aquarium)},
-                onActionClick = viewModel::onManualActionClicked,
+                onActionClick = { topic, payload ->
+                    viewModel.onManualActionClicked(topic, payload, aquarium.id)
+                },
                 onDismiss = viewModel::dismissControlForm
             )
         }
@@ -683,27 +654,27 @@ fun AccensioneButton(
     Button(
         onClick = {
             if (!isAcceso) {
-                onActionClick("acquari/$aquariumName/manual", "spegni")
-            } else {
                 onActionClick("acquari/$aquariumName/manual", "accendi")
+            } else {
+                onActionClick("acquari/$aquariumName/manual", "spegni")
             }
             onAccesoChange(!isAcceso)
         },
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (isAcceso) Color(0xFF1E88E5) else Color(0xFFE53935)
+            contentColor = if (isAcceso) Color(0xFFE53935) else Color(0xFF1E88E5)
         ),
         modifier = modifier.fillMaxWidth()
     ) {
         Icon(
             imageVector = Icons.Filled.PowerSettingsNew,
             contentDescription = "Accensione",
-            tint = if (isAcceso) Color(0xFF1E88E5) else Color(0xFFE53935),
+            tint = if (isAcceso) Color(0xFFE53935) else Color(0xFF1E88E5),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = if (isAcceso) stringResource(R.string.switchOn) else stringResource(R.string.switchOff),
-            color = if (isAcceso) Color(0xFF1E88E5) else Color(0xFFE53935)
+            text = if (isAcceso) stringResource(R.string.switchOff) else stringResource(R.string.switchOn),
+            color = if (isAcceso) Color(0xFFE53935) else Color(0xFF1E88E5)
         )
     }
 }
@@ -720,7 +691,7 @@ fun SvuotamentoButton(
 ) {
     Button(
         onClick = {
-            if (isSvuotamento) {
+            if (!isSvuotamento) {
                 onActionClick("acquari/$aquariumName/manual", "svuotamento")
             } else {
                 onActionClick("acquari/$aquariumName/manual", "stop")
@@ -728,14 +699,14 @@ fun SvuotamentoButton(
             onSvuotamentoChange(!isSvuotamento)
         },
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSvuotamento) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-            contentColor = if (isSvuotamento) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onError
+            containerColor = if (isSvuotamento) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            contentColor = if (isSvuotamento) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
         ),
         modifier = modifier.fillMaxWidth(),
-        enabled = !isAcceso && isRiempimento
+        enabled = isAcceso && !isRiempimento
     ) {
         Text(
-            text = if (isSvuotamento) stringResource(R.string.empty) else stringResource(R.string.stop)
+            text = if (isSvuotamento) stringResource(R.string.stop) else stringResource(R.string.empty)
         )
     }
 }
@@ -752,7 +723,7 @@ fun RiempimentoButton(
 ) {
     Button(
         onClick = {
-            if (isRiempimento) {
+            if (!isRiempimento) {
                 onActionClick("acquari/$aquariumName/manual", "riempimento")
             } else {
                 onActionClick("acquari/$aquariumName/manual", "stop")
@@ -760,14 +731,14 @@ fun RiempimentoButton(
             onRiempimentoChange(!isRiempimento)
         },
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isRiempimento) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
-            contentColor = if (isRiempimento) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onError
+            containerColor = if (isRiempimento) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+            contentColor = if (isRiempimento) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSecondary
         ),
         modifier = modifier.fillMaxWidth(),
-        enabled = !isAcceso && isSvuotamento
+        enabled = isAcceso && !isSvuotamento
     ) {
         Text(
-            text = if (isRiempimento) stringResource(R.string.fill) else stringResource(R.string.stop)
+            text = if (isRiempimento) stringResource(R.string.stop) else stringResource(R.string.fill)
         )
     }
 }
@@ -781,7 +752,8 @@ fun LuciButton(
     modifier: Modifier = Modifier,
     isAcceso: Boolean
 ){
-    val textColor = if (luce) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    val isLightActive = luce && isAcceso
+    val textColor = if (isLightActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
     Button(
         onClick = {
@@ -797,16 +769,16 @@ fun LuciButton(
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
         modifier = modifier.fillMaxWidth(),
-        enabled = !isAcceso
+        enabled = isAcceso
     ) {
         Icon(
             imageVector = Icons.Filled.Lightbulb,
             contentDescription = "Lampadina",
-            tint = if (luce && !isAcceso) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            tint = if (isLightActive) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = if (luce && !isAcceso) stringResource(R.string.luceOn) else stringResource(R.string.luceOff),
+            text = if (isLightActive) stringResource(R.string.luceOn) else stringResource(R.string.luceOff),
             color = textColor
         )
     }
@@ -821,7 +793,8 @@ fun TemperaturaButton(
     modifier: Modifier = Modifier,
     isAcceso: Boolean
 ){
-    val textColor = if (temperatura) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    val isTempActive = temperatura && isAcceso
+    val textColor = if (isTempActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
     Button(
         onClick = {
@@ -837,16 +810,16 @@ fun TemperaturaButton(
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
         modifier = modifier.fillMaxWidth(),
-        enabled = !isAcceso
+        enabled = isAcceso
     ) {
         Icon(
             imageVector = Icons.Filled.Thermostat,
             contentDescription = "Termostato",
-            tint = if (temperatura and !isAcceso) Color(0xFFE53935) else Color(0xFF1E88E5),
+            tint = if (isTempActive) Color(0xFFE53935) else Color(0xFF1E88E5),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = if (temperatura and !isAcceso) stringResource(R.string.temperaturaOn) else stringResource(R.string.temperaturaOff),
+            text = if (isTempActive) stringResource(R.string.temperaturaOn) else stringResource(R.string.temperaturaOff),
             color = textColor
         )
     }
@@ -854,8 +827,7 @@ fun TemperaturaButton(
 @Composable
 private fun AquariumControlDialog(
     form: AquariumControlFormState,
-    manual: ManualControlState,
-    onManualChange: (ManualControlState) -> Unit,
+    config: AquariumConfigEntity?,
     onToggleAuto: (Boolean) -> Unit,
     onShowCharts: () -> Unit,
     onShowSummary: () -> Unit,
@@ -863,6 +835,16 @@ private fun AquariumControlDialog(
     onDismiss: () -> Unit
 ) {
     val aquariumName = form.aquarium?.name ?: ""
+    val isAcceso = config?.isAcceso ?: false
+    val isRiempimento = config?.isRiempimento ?: false
+    val isSvuotamento = config?.isSvuotamento ?: false
+    val isLuce = config?.isLuce ?: false
+    val isTemperatura = config?.isTemperatura ?: false
+
+    var showPompe by remember { mutableStateOf(false) }
+    var showLuci by remember { mutableStateOf(false) }
+    var showTemperatura by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = if (isSystemInDarkTheme()) Color(0xFF0F172A) else Color(0xFFF0F9FF),
@@ -977,8 +959,8 @@ private fun AquariumControlDialog(
                     AccensioneButton(
                         aquariumName = aquariumName,
                         onActionClick = onActionClick,
-                        onAccesoChange = { onManualChange(manual.copy(acceso = it)) },
-                        isAcceso = manual.acceso
+                        onAccesoChange = { },
+                        isAcceso = isAcceso
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -994,29 +976,29 @@ private fun AquariumControlDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Switch(
-                                checked = manual.showPompe,
-                                onCheckedChange = { onManualChange(manual.copy(showPompe = it)) }
+                                checked = showPompe,
+                                onCheckedChange = { showPompe = it }
                             )
                         }
                     }
 
-                    if (manual.showPompe) {
+                    if (showPompe) {
                         RiempimentoButton(
                             aquariumName = aquariumName,
                             onActionClick = onActionClick,
-                            onRiempimentoChange = { onManualChange(manual.copy(riempimento = it)) },
-                            isAcceso = manual.acceso,
-                            isSvuotamento = manual.svuotamento,
-                            isRiempimento = manual.riempimento
+                            onRiempimentoChange = { },
+                            isAcceso = isAcceso,
+                            isSvuotamento = isSvuotamento,
+                            isRiempimento = isRiempimento
                         )
 
                         SvuotamentoButton(
                             aquariumName = aquariumName,
                             onActionClick = onActionClick,
-                            onSvuotamentoChange = { onManualChange(manual.copy(svuotamento = it)) },
-                            isAcceso = manual.acceso,
-                            isRiempimento = manual.riempimento,
-                            isSvuotamento = manual.svuotamento
+                            onSvuotamentoChange = { },
+                            isAcceso = isAcceso,
+                            isRiempimento = isRiempimento,
+                            isSvuotamento = isSvuotamento
                         )
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -1031,19 +1013,19 @@ private fun AquariumControlDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Switch(
-                                checked = manual.showLuci,
-                                onCheckedChange = { onManualChange(manual.copy(showLuci = it)) }
+                                checked = showLuci,
+                                onCheckedChange = { showLuci = it }
                             )
                         }
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    if (manual.showLuci) {
+                    if (showLuci) {
                         LuciButton(
                             aquariumName = aquariumName,
                             onActionClick = onActionClick,
-                            luce = manual.luce,
-                            onLuceChange = { onManualChange(manual.copy(luce = it)) },
-                            isAcceso = manual.acceso
+                            luce = isLuce,
+                            onLuceChange = { },
+                            isAcceso = isAcceso
                         )
                     }
 
@@ -1058,19 +1040,19 @@ private fun AquariumControlDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Switch(
-                                checked = manual.showTemperatura,
-                                onCheckedChange = { onManualChange(manual.copy(showTemperatura = it)) }
+                                checked = showTemperatura,
+                                onCheckedChange = { showTemperatura = it }
                             )
                         }
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    if (manual.showTemperatura) {
+                    if (showTemperatura) {
                         TemperaturaButton(
                             aquariumName = aquariumName,
                             onActionClick = onActionClick,
-                            temperatura = manual.riscaldamento,
-                            onTemperaturaChange = { onManualChange(manual.copy(riscaldamento = it)) },
-                            isAcceso = manual.acceso
+                            temperatura = isTemperatura,
+                            onTemperaturaChange = { },
+                            isAcceso = isAcceso
                         )
                     }
 
@@ -1195,7 +1177,6 @@ private fun AquariumCard(
             .pointerInput(aquarium.id){
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = true)
-                    onShortPress()
                     val colorChanger = colorScope.launch {
                         isPassed500=true
                         delay(time)
@@ -1216,6 +1197,8 @@ private fun AquariumCard(
 
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onClick()
+                    }else{
+                        onShortPress()
                     }
                 }
             }

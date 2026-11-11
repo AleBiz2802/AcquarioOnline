@@ -1,6 +1,7 @@
 package com.acquarioonline.ui.login
 
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -73,6 +75,8 @@ fun LoginScreen(
     val isSignUp = state.mode == AuthMode.SignUp
     val confirmTitle = stringResource(R.string.confirm_identity)
     val confirmMessage = stringResource(R.string.confirm_identity_message)
+    val changePassword = stringResource(R.string.change_password)
+    val confirmIdentity = stringResource(R.string.confirm_identity_message)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -165,10 +169,10 @@ fun LoginScreen(
         if (state.generalError == R.string.error_invalid_credentials) {
             TextButton(
                 onClick = { showChangePasswordDialog = true },
-                enabled = !state.isLoading
+                enabled = !state.isLoading,
             ) {
                 Text(
-                    text = "Cambia la password",
+                    text = changePassword,
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -179,15 +183,15 @@ fun LoginScreen(
 
         AlertDialog(
             onDismissRequest = { showChangePasswordDialog = false },
-            title = { Text("Cambia la password") },
+            title = { Text(changePassword) },
             text = {
                 Column {
-                    Text("Inserisci la nuova password per ${state.email}:")
+                    Text(stringResource(R.string.insert_new_password)+"${state.email}")
                     Spacer(Modifier.height(8.dp))
                     FormTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        label = "Nuova password",
+                        label = stringResource(R.string.new_password),
                         keyboardType = KeyboardType.Password
                     )
                 }
@@ -216,8 +220,8 @@ fun LoginScreen(
     LaunchedEffect(enableChangePassword) {
         if(enableChangePassword){
             biometricPromptManager.showBiometricPrompt(
-                title = "Cambia Password",
-                description = "Conferma con l'impronta digitale per salvare la nuova password"
+                title = changePassword,
+                description = confirmIdentity
             )
         }
     }

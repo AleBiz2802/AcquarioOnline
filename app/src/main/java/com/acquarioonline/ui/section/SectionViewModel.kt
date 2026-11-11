@@ -22,7 +22,6 @@ import com.acquarioonline.data.local.AquariumConfigEntity
 import com.acquarioonline.data.local.AquariumSensorData
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.data.mqtt.MqttManager
-import com.acquarioonline.data.notification.NotificationHelper
 import com.acquarioonline.data.repository.AquariumRepository
 import com.acquarioonline.ui.home.Quad
 import kotlinx.coroutines.Job
@@ -38,6 +37,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import android.bluetooth.BluetoothManager
+import com.acquarioonline.data.influxQuerier.filterTodayMorning
+
 /** Stato del form "Nuovo acquario". La password Wi-Fi vive solo qui, mai su disco. */
 data class AquariumFormState(
     val visible: Boolean = false,
@@ -435,8 +436,25 @@ class SectionViewModel(
     }
 
 
-    fun onManualActionClicked(topic: String, payload: String) {
+    fun onManualActionClicked(topic: String, payload: String, aquariumId: Long) {
         mqttManager.publish(topic, payload)
+        viewModelScope.launch {
+            val current = repository.getConfig(aquariumId) ?: AquariumConfigEntity(aquariumId = aquariumId)
+            val updated = when (payload) {
+                "accendi" -> current.copy(isAcceso = true)
+                "spegni" -> current.copy(isAcceso = false)
+                "luceOn" -> current.copy(isLuce = true)
+                "luceOff" -> current.copy(isLuce = false)
+                "riscaldamentoOn" -> current.copy(isTemperatura = true)
+                "riscaldamentoOff" -> current.copy(isTemperatura = false)
+                "riempimento" -> current.copy(isRiempimento = true, isSvuotamento = false)
+                "svuotamento" -> current.copy(isSvuotamento = true, isRiempimento = false)
+                "stop" -> current.copy(isRiempimento = false, isSvuotamento = false)
+                else -> current
+            }
+            repository.saveConfig(updated)
+            configMap.update { it + (aquariumId to updated) }
+        }
     }
 
     fun onShowSensorsClicked(aquarium: Aquarium) {
@@ -512,8 +530,7 @@ class SectionViewModel(
             sectionId: Long,
             repository: AquariumRepository,
             ble: BleProvisioner,
-            mqttManager: MqttManager,
-            notificationHelper: NotificationHelper
+            mqttManager: MqttManager
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 SectionViewModel(

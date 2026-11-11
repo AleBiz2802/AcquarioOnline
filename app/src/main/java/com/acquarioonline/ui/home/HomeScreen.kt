@@ -172,6 +172,7 @@ fun HomeScreen(
                         onClick = viewModel::signOut,
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
+
                 }
             }
         }

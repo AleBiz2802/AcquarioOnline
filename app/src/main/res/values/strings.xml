@@ -196,4 +196,14 @@
 
 
     <string name="long_press">Premi più a lungo</string>
+    <string name="change_password">Cambia la password</string>
+    <string name="insert_new_password">Inserisci la nuova password per: </string>
+    <string name="new_password">la nuova password</string>
+    <string name="lights">Luci</string>
+    <string name="filter">Filtro</string>
+    <string name="heat">Riscaldatore</string>
+    <string name="activated">N° attivazioni:</string>
+    <string name="deactivated">N° deattivazioni :</string>
+
+
 </resources>
