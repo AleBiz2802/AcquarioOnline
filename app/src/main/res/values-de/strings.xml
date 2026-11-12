@@ -189,5 +189,19 @@
     <string name="heat">Heizung</string>
     <string name="activated">Anzahl Aktivierungen:</string>
     <string name="deactivated">Anzahl Deaktivierungen:</string>
-
+    <string name="change_credentials">Zugangsdaten ändern</string>
+    <string name="new_email">Neue E-Mail</string>
+    <string name="confirm_password">Passwort bestätigen</string>
+    <string name="userDatas">Info</string>
+    <string name="new_name">Neue Name</string>
+    <string name="new_password_confirm">Möchten Sie das Passwort wirklich ändern?</string>
+    <string name="new_email_confirm">Möchten Sie die E-Mail-Adresse wirklich ändern?</string>
+    <string name="new_name_confirm">Möchten Sie den Namen wirklich ändern?</string>
+    <string name="edit">Bestaetigen</string>
+    <string name="password">Passwort</string>
+    <string name="email">E-Mail</string>
+    <string name="name">Name</string>
+    <string name="userAccount">Benutzerprofil</string>
+    <string name="back">Zurück</string>
+    <string name="error_passwords_mismatch">Die Passwörter stimmen nicht überein</string>
 </resources>

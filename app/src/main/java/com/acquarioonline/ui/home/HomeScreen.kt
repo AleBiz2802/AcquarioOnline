@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -73,15 +74,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.acquarioonline.R
 import com.acquarioonline.data.auth.UserProfile
 import com.acquarioonline.data.local.Section
+import com.acquarioonline.ui.AppViewModelProvider
+import com.acquarioonline.ui.User.UserInfoScreen
+import com.acquarioonline.ui.User.UserInfoViewModel
 import com.acquarioonline.ui.components.OpenStreetMapMultipleMarkers
+import com.acquarioonline.ui.login.BiometricPromptManager
 import com.acquarioonline.ui.section.SectionScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    biometricPromptManager: BiometricPromptManager,
     viewModel: HomeViewModel = viewModel(factory = com.acquarioonline.ui.AppViewModelProvider.Factory)
 ) {
+
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -89,6 +96,8 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var sectionToDelete by remember { mutableStateOf<Section?>(null) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+
+    var showUserInfoScreen by remember { mutableStateOf(false) }
     val selected = state.selectedSection
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -159,6 +168,16 @@ fun HomeScreen(
                         selected = false,
                         onClick = {
                             showLanguageDialog = true
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        label = { Text(stringResource(R.string.userDatas)) },
+                        icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
+                        selected = false,
+                        onClick = {
+                            showUserInfoScreen = true
                             scope.launch { drawerState.close() }
                         },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -274,7 +293,14 @@ fun HomeScreen(
             onDismiss = { showLanguageDialog = false }
         )
     }
-
+    if(showUserInfoScreen){
+        val userInfoViewModel: UserInfoViewModel = viewModel(factory = AppViewModelProvider.Factory)
+        UserInfoScreen(
+            biometricPromptManager=biometricPromptManager,
+            viewModel = userInfoViewModel,
+            onBack = { showUserInfoScreen = false }
+        )
+    }
     sectionToDelete?.let { section ->
         AlertDialog(
             onDismissRequest = { sectionToDelete = null },

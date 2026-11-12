@@ -2,6 +2,7 @@ package com.acquarioonline.data.auth
 
 import android.content.SharedPreferences
 import android.database.sqlite.SQLiteConstraintException
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import com.acquarioonline.data.local.User
 import com.acquarioonline.data.local.UserDao
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +84,32 @@ class AuthRepository(
                 passwordSalt = PasswordHasher.encode(salt)
             )
             userDao.insert(updateUserCredential)
+        }
+    }
+    suspend fun changeUserName(email:String, newName:String){
+        val normaizedEmail = normalize(email)
+        withContext(Dispatchers.Default){
+            val user = userDao.findByEmail(normaizedEmail)?:throw InvalidCredentialsException()
+            val updated = user.copy(
+                name = newName
+            )
+            userDao.insert(updated)
+            startSession(UserProfile(user.id.toString(), newName, user.email))
+
+        }
+    }
+
+    suspend fun changeUserEmail(email: String, newEmail:String){
+        val normalizedEmail = normalize(email)
+        val newEmailNormalized = normalize(newEmail)
+        withContext(Dispatchers.Default){
+            val user = userDao.findByEmail(normalizedEmail)?:throw InvalidCredentialsException()
+            val updated = user.copy(
+                email = if(userDao.findByEmail(newEmailNormalized)==null) newEmailNormalized else throw EmailAlreadyInUseException()
+            )
+            userDao.insert(updated)
+            startSession(UserProfile(user.id.toString(), user.name, newEmailNormalized))
+
         }
     }
     fun signOut() {

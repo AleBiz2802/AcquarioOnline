@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.acquarioonline.AcquarioApp
+import com.acquarioonline.ui.User.UserInfoViewModel
 import com.acquarioonline.ui.home.HomeViewModel
 import com.acquarioonline.ui.login.LoginViewModel
 
@@ -16,6 +17,9 @@ object AppViewModelProvider {
         initializer {
             val container = acquarioApp().container
             HomeViewModel(container.authRepository, container.aquariumRepository, container.mqttManager)
+        }
+        initializer {
+            UserInfoViewModel(acquarioApp().container.authRepository)
         }
     }
 }

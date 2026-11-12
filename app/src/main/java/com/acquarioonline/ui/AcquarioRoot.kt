@@ -21,6 +21,6 @@ fun AcquarioRoot(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        if (user == null) LoginScreen( biometricPromptManager) else HomeScreen()
+        if (user == null) LoginScreen( biometricPromptManager) else HomeScreen(biometricPromptManager)
     }
 }
