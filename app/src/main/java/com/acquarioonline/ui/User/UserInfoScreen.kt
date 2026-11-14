@@ -124,6 +124,7 @@ fun UserInfoScreen(
             )
 
             UserInfoCard(
+
                 icon = Icons.Filled.Email,
                 label = stringResource(R.string.field_email),
                 value = user?.email ?: "-",
@@ -137,7 +138,8 @@ fun UserInfoScreen(
             UserInfoCard(
                 icon = Icons.Filled.Lock,
                 label = stringResource(R.string.field_password),
-                value = "••••••••",
+                value = user?.password?:"-",
+                //ciao patatino
                 onEditClick = {
                     viewModel.clearError()
                     isCredentialEditState = true
@@ -186,11 +188,11 @@ fun UserInfoScreen(
         if(showIdentityChecker){
             biometricPromptManager.showBiometricPrompt(
                 title = if(elementEdited=="email")
-                            "Email"
+                            email
                         else if(elementEdited=="password")
-                            "Password"
+                            password
                         else
-                            "Name",
+                            name,
                 description = "Confirm your identity"
             )
         }
@@ -231,13 +233,10 @@ fun UserInfoScreen(
                     onClick = {
                         biometricPromptManager.showBiometricPrompt(
                             title = if(elementEdited=="email")
-                             //stringResource(R.string.new_email)
                                 email
                             else if(elementEdited=="password")
-                            //stringResource(R.string.new_password)
                                 password
                             else
-                            /// stringResource(R.string.new_name),
                                 name,
                             description = confirmIdentity
                         )

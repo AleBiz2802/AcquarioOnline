@@ -31,9 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.material.icons.filled.SurroundSound
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Visibility
@@ -77,23 +75,16 @@ import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.AquariumConfigEntity
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.ui.components.FormTextField
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import android.bluetooth.*
 import android.content.*
 import android.widget.Toast
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.material3.AlertDialogDefaults.containerColor
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -302,7 +293,6 @@ fun SectionScreen(
                 onToggleAuto = { auto ->
                     viewModel.onAutoModeToggle(auto)
                 },
-                onShowCharts = { viewModel.onShowChartsClicked(aquarium) },
                 onShowSummary = {viewModel.onShowSummaryClicked(aquarium)},
                 onActionClick = { topic, payload ->
                     viewModel.onManualActionClicked(topic, payload, aquarium.id)
@@ -326,24 +316,9 @@ fun SectionScreen(
         }
     }
 
-
-    if (state.chartsForm.visible) {
-        val aquarium = state.chartsForm.aquarium
-        if (aquarium != null) {
-            val config = state.configMap[aquarium.id]
-            AquariumChartsDialog(
-                aquarium = aquarium,
-                config = config,
-                dbSensorData = state.dbSensorDataList,
-                onDismiss = viewModel::dismissChartsForm
-            )
-        }
-    }
-
     if(state.summaryForm.visible){
         val aquarium = state.summaryForm.aquarium
         if(aquarium != null){
-            val config = state.configMap[aquarium.id]
             SummarySheet(
                 aquarium,
                 summaryElements = state.summarizables.toMutableList(),
@@ -829,7 +804,6 @@ private fun AquariumControlDialog(
     form: AquariumControlFormState,
     config: AquariumConfigEntity?,
     onToggleAuto: (Boolean) -> Unit,
-    onShowCharts: () -> Unit,
     onShowSummary: () -> Unit,
     onActionClick: (String, String) -> Unit,
     onDismiss: () -> Unit
@@ -887,39 +861,7 @@ private fun AquariumControlDialog(
                     }
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isSystemInDarkTheme()) Color(0xFF003A48) else Color(0xFFE0F2FE),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onShowCharts() }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                                contentDescription = "Grafici",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(text = stringResource(R.string.charts), style = MaterialTheme.typography.bodyLarge)
-                        }
-                        IconButton(onClick = onShowCharts) {
-                            Icon(
-                                imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "Grafici"
-                            )
-                        }
-                    }
-                }
+
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),

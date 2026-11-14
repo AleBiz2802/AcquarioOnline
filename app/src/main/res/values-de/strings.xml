@@ -149,7 +149,7 @@
     <string name="chart_avg_per_day">Tagesdurchschnitt</string>
     <string name="chart_temperature">Temperatur (°C)</string>
     <string name="chart_water_level">Wasserstand (cm)</string>
-    <string name="chart_no_data">Noch keine Messungen in der Datenbank für dieses Aquarium gespeichert. Die Daten werden automatisch aufgezeichnet, sobald Sensorwerte eingehen.</string>
+    <string name="chart_no_data">Noch keine Messungen in der Datenbank für dieses Aquarium gespeichert.</string>
     <string name="pumps">Pumpen</string>
     <string name="draining">Entleerung</string>
     <string name="filling">Befüllung</string>

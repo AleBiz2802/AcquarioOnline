@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
@@ -75,6 +76,7 @@ import com.acquarioonline.R
 import com.acquarioonline.data.auth.UserProfile
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.ui.AppViewModelProvider
+import com.acquarioonline.ui.Charts.AquariumChartsScreen
 import com.acquarioonline.ui.User.UserInfoScreen
 import com.acquarioonline.ui.User.UserInfoViewModel
 import com.acquarioonline.ui.components.OpenStreetMapMultipleMarkers
@@ -162,6 +164,16 @@ fun HomeScreen(
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
+                    NavigationDrawerItem(
+                        label = { Text(stringResource(R.string.charts)) },
+                        icon = { Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null) },
+                        selected = state.showChartsDialog,
+                        onClick = {
+                            viewModel.onOpenChartsDrawerClicked()
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
                     NavigationDrawerItem(
                         label = { Text(stringResource(R.string.language)) },
                         icon = { Icon(Icons.Filled.Language, contentDescription = null) },
@@ -291,6 +303,15 @@ fun HomeScreen(
                 findActivity(context)?.recreate()
             },
             onDismiss = { showLanguageDialog = false }
+        )
+    }
+    if (state.showChartsDialog) {
+        AquariumChartsScreen(
+            aquariums = state.availableAquariums,
+            initialAquarium = state.selectedAquariumForCharts,
+            dbSensorData = state.chartSensorDataList,
+            onAquariumSelected = viewModel::onSelectAquariumForCharts,
+            onDismiss = viewModel::dismissCharts
         )
     }
     if(showUserInfoScreen){

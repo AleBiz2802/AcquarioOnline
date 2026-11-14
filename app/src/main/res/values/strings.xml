@@ -163,7 +163,7 @@
     <string name="chart_avg_per_day">Media giornaliera</string>
     <string name="chart_temperature">Temperatura (°C)</string>
     <string name="chart_water_level">Livello Acqua (cm)</string>
-    <string name="chart_no_data">Nessuna misurazione ancora salvata nel database per questo acquario. I dati verranno registrati automaticamente all\'arrivo dei sensori.</string>
+    <string name="chart_no_data">Nessuna misurazione ancora salvata nel database per questo acquario.</string>
     <string name="pumps">Pompe</string>
     <string name="draining">Svuotamento</string>
     <string name="filling">Riempimento</string>

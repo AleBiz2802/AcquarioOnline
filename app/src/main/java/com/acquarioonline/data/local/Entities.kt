@@ -18,6 +18,20 @@ class Converters{
     fun dateToTimestamp(date: LocalDateTime?): String?{
         return date?.toString()
     }
+    @TypeConverter
+    fun userDatasToData(user_datas: userDatas?): String? {
+        return user_datas?.let { "${it.name},${it.password}" }
+    }
+    @TypeConverter
+    fun dataToUserDatas(value: String?): userDatas? {
+        return value?.let {
+            val parts = it.split(",")
+            userDatas(
+                name = parts.getOrNull(0) ?: "",
+                password = parts.getOrNull(1) ?: ""
+            )
+        }
+    }
 }
 /** Raccolta di acquari che fa capo a un broker MQTT. Appartiene a un utente (id del profilo locale). */
 @Entity(tableName = "sections", indices = [Index("ownerUid")])

@@ -149,7 +149,7 @@
     <string name="chart_avg_per_day">Moyenne quotidienne</string>
     <string name="chart_temperature">Température (°C)</string>
     <string name="chart_water_level">Niveau d\'eau (cm)</string>
-    <string name="chart_no_data">Aucune mesure enregistrée dans la base de données pour cet aquarium pour le moment. Les données seront enregistrées automatiquement à la réception des capteurs.</string>
+    <string name="chart_no_data">Aucune mesure enregistrée dans la base de données pour cet aquarium pour le moment.</string>
     <string name="pumps">Pompes</string>
     <string name="draining">Vidange</string>
     <string name="filling">Remplissage</string>

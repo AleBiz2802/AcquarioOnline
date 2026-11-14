@@ -23,7 +23,6 @@ import com.acquarioonline.data.local.AquariumSensorData
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.data.mqtt.MqttManager
 import com.acquarioonline.data.repository.AquariumRepository
-import com.acquarioonline.ui.home.Quad
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -85,11 +84,6 @@ data class AquariumSensorsFormState(
     val aquarium: Aquarium? = null
 )
 
-data class AquariumChartsFormState(
-    val visible: Boolean = false,
-    val aquarium: Aquarium? = null
-)
-
 data class AquariumSummariesFormState(
     val visible: Boolean = false,
     val aquarium: Aquarium? = null
@@ -103,7 +97,6 @@ data class SectionUiState(
     val configForm: AquariumConfigFormState = AquariumConfigFormState(),
     val controlForm: AquariumControlFormState = AquariumControlFormState(),
     val sensorsForm: AquariumSensorsFormState = AquariumSensorsFormState(),
-    val chartsForm: AquariumChartsFormState = AquariumChartsFormState(),
     val summaryForm : AquariumSummariesFormState = AquariumSummariesFormState(),
     val sensorDataMap: Map<Long, SensorData> = emptyMap(),
     val dbSensorDataList: List<InfluxSensorData> = emptyList(),
@@ -111,6 +104,8 @@ data class SectionUiState(
     val summarizables: List<Summarizable> = emptyList(),
     val bleStatus: BleStatus = BleStatus.Idle
 )
+
+data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 class SectionViewModel(
     private val sectionId: Long,
@@ -124,7 +119,6 @@ class SectionViewModel(
     private val configForm = MutableStateFlow(AquariumConfigFormState())
     private val controlForm = MutableStateFlow(AquariumControlFormState())
     private val sensorsForm = MutableStateFlow(AquariumSensorsFormState())
-    private val chartsForm = MutableStateFlow(AquariumChartsFormState())
 
     private val summaryForm = MutableStateFlow(AquariumSummariesFormState())
     private val sensorDataMap = MutableStateFlow<Map<Long, SensorData>>(emptyMap())
@@ -141,7 +135,6 @@ class SectionViewModel(
 
     private data class Record2(
         val sens: AquariumSensorsFormState,
-        val charts: AquariumChartsFormState,
         val data: Map<Long, SensorData>,
         val dbData: List<InfluxSensorData>,
         val configMap: Map<Long, AquariumConfigEntity>,
@@ -154,8 +147,8 @@ class SectionViewModel(
         repository.observeSection(sectionId),
         repository.observeAquariums(sectionId),
         combine(form, configForm, controlForm,summaryForm) { f, cfg, ctrl,smf -> Quad(f, cfg, ctrl,smf) },
-        combine(sensorsForm, chartsForm, sensorDataMap, dbSensorDataList, configMap,) { sens, ch, data, dbData, cm ->
-            Record2(sens, ch, data, dbData, cm, bleStatus.value)
+        combine(sensorsForm, sensorDataMap, dbSensorDataList, configMap,) { sens, data, dbData, cm ->
+            Record2(sens, data, dbData, cm, bleStatus.value)
         },
         summarizables.map{s -> Record3(s)}
     ) { section, aquariums, t1, t2,t3->
@@ -166,7 +159,6 @@ class SectionViewModel(
             configForm = t1.second,
             controlForm = t1.third,
             sensorsForm = t2.sens,
-            chartsForm = t2.charts,
             sensorDataMap = t2.data,
             summaryForm = t1.fourth,
             dbSensorDataList = t2.dbData,
@@ -461,31 +453,6 @@ class SectionViewModel(
         sensorsForm.value = AquariumSensorsFormState(visible = true, aquarium = aquarium)
     }
 
-    fun onShowChartsClicked(aquarium: Aquarium) {
-
-        viewModelScope.launch {
-                chartsForm.collect { state ->
-                    val aquarium = state.aquarium
-                    if (state.visible && aquarium != null) {
-                        try{
-                            dbSensorDataList.value = getSensorData(aquarium.name)
-                        }catch (e: Exception){
-                            repository.observeSensorData(aquarium.id).collect { localData ->
-                                dbSensorDataList.value = localData.toInfluxFormat(aquarium.name)
-                            }
-                        }
-
-                    } else {
-                        dbSensorDataList.value = emptyList()
-                    }
-                }
-
-
-        }
-        chartsForm.value = AquariumChartsFormState(visible = true, aquarium = aquarium)
-    }
-
-
     fun List<AquariumSensorData>.toInfluxFormat(aquariumName: String): List<InfluxSensorData> {
         return this.flatMap { roomRecord ->
             listOfNotNull(
@@ -505,9 +472,6 @@ class SectionViewModel(
                 Log.e("SectionViewModel", "Errore InfluxDB:", e)
             }
         }
-    }
-    fun dismissChartsForm() {
-        chartsForm.value = AquariumChartsFormState()
     }
     fun onUltraSoundListening(aquarium: Aquarium) {
         mqttManager.publish("acquari/${aquarium.name}/campionaUltraSuoni", "attiva",0)

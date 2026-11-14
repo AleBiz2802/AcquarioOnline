@@ -14,13 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import android.provider.Settings
-import android.content.Intent
-import android.os.Build
-import android.widget.Toast
 import com.acquarioonline.data.auth.UserNotKnownException
 
 enum class AuthMode { SignIn, SignUp }
@@ -108,6 +101,7 @@ class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
         }
     }
 
+
     fun changePassword(email: String, newPassword:String){
         viewModelScope.launch {
             try {
@@ -127,7 +121,19 @@ class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
         is UserNotKnownException -> R.string.error_user_not_exists
         else -> R.string.error_generic
     }
-
+    fun updatePassword(email:String, newPassword: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                auth.changeHashedPassword(email,newPassword)
+                _uiState.update {it.copy(generalError = null) }
+            }catch (e: Exception){
+                _uiState.update { it.copy(generalError = R.string.error_generic) }
+            }
+        }
+    }
+    fun clearError() {
+        _uiState.update { it.copy(generalError = null) }
+    }
     private companion object {
         const val MIN_PASSWORD_LENGTH = 6
     }

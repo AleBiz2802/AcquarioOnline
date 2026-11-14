@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.acquarioonline.R
 import com.acquarioonline.data.auth.AuthRepository
 import com.acquarioonline.data.auth.UserProfile
+import com.acquarioonline.data.influxQuerier.InfluxSensorData
+import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.data.mqtt.MqttManager
 import com.acquarioonline.data.repository.AquariumRepository
@@ -36,13 +38,15 @@ data class HomeUiState(
     val sections: List<Section> = emptyList(),
     val selectedSectionId: Long? = null,
     val isMapSelected: Boolean = false,
-    val form: SectionFormState = SectionFormState()
+    val showChartsDialog: Boolean = false,
+    val selectedAquariumForCharts: Aquarium? = null,
+    val chartSensorDataList: List<InfluxSensorData> = emptyList(),
+    val availableAquariums: List<Aquarium> = emptyList(),
+    val form: SectionFormState = SectionFormState(),
+    val password: String? = null
 ) {
-    /** Sezione aperta; null = si sta mostrando la home. */
     val selectedSection: Section? get() = sections.firstOrNull { it.id == selectedSectionId }
 }
-
-data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
@@ -55,18 +59,43 @@ class HomeViewModel(
     private val isMapSelected = MutableStateFlow(false)
     private val form = MutableStateFlow(SectionFormState())
 
+    private val showChartsDialog = MutableStateFlow(false)
+    private val selectedAquariumForCharts = MutableStateFlow<Aquarium?>(null)
+    private val chartSensorDataList = MutableStateFlow<List<InfluxSensorData>>(emptyList())
+    private val availableAquariums = MutableStateFlow<List<Aquarium>>(emptyList())
+
     private val user = auth.currentUser
     private val sections = user.flatMapLatest { u ->
         if (u == null) flowOf(emptyList()) else repository.observeSections(u.uid)
     }
 
-    val uiState: StateFlow<HomeUiState> = combine(user, sections, selectedId, isMapSelected, form) { u, s, sel, map, f ->
-        HomeUiState(
-            user = u,
-            sections = s,
-            selectedSectionId = sel,
-            isMapSelected = map,
-            form = f
+    private data class ChartsState(
+        val showDialog: Boolean,
+        val selectedAquarium: Aquarium?,
+        val chartData: List<InfluxSensorData>,
+        val availableAquariums: List<Aquarium>
+    )
+
+    private val chartsState = combine(
+        showChartsDialog,
+        selectedAquariumForCharts,
+        chartSensorDataList,
+        availableAquariums
+    ) { dialog, selected, data, available ->
+        ChartsState(dialog, selected, data, available)
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(
+        combine(user, sections, selectedId, isMapSelected, form) { u, s, sel, map, f ->
+            HomeUiState(user = u, sections = s, selectedSectionId = sel, isMapSelected = map, form = f)
+        },
+        chartsState
+    ) { baseState, charts ->
+        baseState.copy(
+            showChartsDialog = charts.showDialog,
+            selectedAquariumForCharts = charts.selectedAquarium,
+            chartSensorDataList = charts.chartData,
+            availableAquariums = charts.availableAquariums
         )
     }.stateIn(
         scope = viewModelScope,
@@ -89,6 +118,38 @@ class HomeViewModel(
     fun onSectionSelected(sectionId: Long) {
         selectedId.value = sectionId
         isMapSelected.value = false
+    }
+
+    // --- Grafici dal drawer ---
+
+    fun onOpenChartsDrawerClicked() {
+        viewModelScope.launch {
+            val allAquariums = mutableListOf<Aquarium>()
+            for (section in uiState.value.sections) {
+                allAquariums.addAll(repository.getAquariumsBySection(section.id))
+            }
+            availableAquariums.value = allAquariums
+            showChartsDialog.value = true
+            val first = allAquariums.firstOrNull()
+            if (first != null) {
+                onSelectAquariumForCharts(first)
+            }
+        }
+    }
+
+    fun onSelectAquariumForCharts(aquarium: Aquarium) {
+        viewModelScope.launch {
+            selectedAquariumForCharts.value = aquarium
+            val data = repository.fetchSensorDataForAquarium(aquarium)
+            chartSensorDataList.value = data
+        }
+    }
+
+    fun dismissCharts() {
+        showChartsDialog.value = false
+        selectedAquariumForCharts.value = null
+        chartSensorDataList.value = emptyList()
+        availableAquariums.value = emptyList()
     }
 
     // --- Form "Nuova sezione" ---
@@ -151,7 +212,6 @@ class HomeViewModel(
     }
 }
 
-/** Accetta hostname o IP (anche con schema/porta), purché non vuoti e senza spazi. */
 internal fun isValidBrokerAddress(value: String): Boolean {
     val trimmed = value.trim()
     return trimmed.isNotEmpty() && trimmed.none { it.isWhitespace() }

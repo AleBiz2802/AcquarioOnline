@@ -1,11 +1,15 @@
-package com.acquarioonline.ui.section
+package com.acquarioonline.ui.Charts
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.view.ViewGroup
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -14,11 +18,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import com.acquarioonline.R
 import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.AquariumConfigEntity
-import com.acquarioonline.data.local.AquariumSensorData
 import co.yml.charts.axis.AxisData
 import co.yml.charts.common.model.Point
 import co.yml.charts.ui.linechart.LineChart
@@ -92,13 +94,20 @@ fun buildDailyDataFromDb(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AquariumChartsDialog(
-    aquarium: Aquarium,
-    config: AquariumConfigEntity?,
+fun AquariumChartsScreen(
+    aquariums: List<Aquarium> = emptyList(),
+    initialAquarium: Aquarium? = null,
     dbSensorData: List<InfluxSensorData> = emptyList(),
-    onDismiss: () -> Unit
+    onAquariumSelected: (Aquarium) -> Unit = {},
+    onDismiss: () -> Unit,
+    config: AquariumConfigEntity? = null
 ) {
+    var selectedAquarium by remember(initialAquarium, aquariums) {
+        mutableStateOf(initialAquarium ?: aquariums.firstOrNull())
+    }
+    var dropdownExpanded by remember { mutableStateOf(false) }
     var selectedSubSection by remember { mutableStateOf(ChartSubSection.MASSIMI) }
 
     val days = listOf(
@@ -111,56 +120,87 @@ fun AquariumChartsDialog(
         stringResource(R.string.sunday)
     )
 
-    val historicalData = remember(aquarium.id, dbSensorData, days) {
+    val historicalData = remember(selectedAquarium?.id, dbSensorData, days) {
         buildDailyDataFromDb(dbSensorData, days)
     }
 
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = !isLandscape),
-        modifier = if (isLandscape) {
-            Modifier
-                .fillMaxWidth(0.75f)
-                .fillMaxHeight(0.85f)
-        } else {
-            Modifier.fillMaxWidth()
-        },
-        containerColor = if (isSystemInDarkTheme()) Color(0xFF0F172A) else Color(0xFFF8FAFC),
-        title = {
-            Column {
-                Text(
-                    text = "${stringResource(R.string.charts)}: ${aquarium.name}",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = stringResource(R.string.chart_weekly_history),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Scaffold(
+            Modifier.fillMaxSize(),
+            containerColor = if (isSystemInDarkTheme()) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+            contentWindowInsets = WindowInsets.safeDrawing,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.charts),
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = stringResource(R.string.chart_weekly_history),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             }
-        },
-        text = {
+        ) { paddingValues ->
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (dbSensorData.isEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.fillMaxWidth()
+                // Menu a tendina per selezionare l'acquario
+                if (aquariums.isNotEmpty()) {
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpanded,
+                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
                     ) {
-                        Text(
-                            text = stringResource(R.string.chart_no_data),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(12.dp)
+                        OutlinedTextField(
+                            value = selectedAquarium?.name ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.aquarium_name)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
                         )
+
+                        ExposedDropdownMenu(
+                            expanded = dropdownExpanded,
+                            onDismissRequest = { dropdownExpanded = false }
+                        ) {
+                            aquariums.forEach { aq ->
+                                DropdownMenuItem(
+                                    text = { Text(aq.name) },
+                                    onClick = {
+                                        selectedAquarium = aq
+                                        dropdownExpanded = false
+                                        onAquariumSelected(aq)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -184,6 +224,21 @@ fun AquariumChartsDialog(
                         onClick = { selectedSubSection = ChartSubSection.MEDIA },
                         text = { Text(stringResource(R.string.chart_avg), fontSize = 13.sp) }
                     )
+                }
+
+                if (dbSensorData.isEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.chart_no_data),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
 
                 // Grafico 1: Temperatura
@@ -245,18 +300,14 @@ fun AquariumChartsDialog(
                     dayLabels = historicalData.map { it.dayLabel },
                     lineColor = Color(0xFF10B981)
                 )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    )
+
 }
 
 
-
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 private fun SingleChartCard(
     title: String,
@@ -267,7 +318,6 @@ private fun SingleChartCard(
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val axisStepSize = if (isLandscape) 85.dp else 45.dp
     val chartHeight = if (isLandscape) 260.dp else 200.dp
 
     Card(
@@ -288,73 +338,77 @@ private fun SingleChartCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             val yValues = dataPoints.map { it.y }
-            val minY = if (yValues.all { it == 0f }) 0f else (yValues.minOrNull() ?: 0f) - 1f
-            val maxY = if (yValues.all { it == 0f }) 10f else (yValues.maxOrNull() ?: 10f) + 1f
+            val minY = if (yValues.all { it == 0f }) 0f else (yValues.minOrNull() ?: 0f)
+            val maxY = if (yValues.all { it == 0f }) 10f else (yValues.maxOrNull() ?: 10f)
             val steps = 4
 
-            val xAxisData = AxisData.Builder()
-                .axisStepSize(axisStepSize)
-                .backgroundColor(Color.Transparent)
-                .steps(dataPoints.size - 1)
-                .labelData { index -> dayLabels.getOrElse(index) { "" } }
-                .labelAndAxisLinePadding(8.dp)
-                .axisLineColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                .axisLabelColor(MaterialTheme.colorScheme.onSurface)
-                .build()
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val numSteps = if (dataPoints.size > 1) dataPoints.size - 1 else 1
+                val calculatedStepSize = (maxWidth - 50.dp) / numSteps
 
-            val yAxisData = AxisData.Builder()
-                .steps(steps)
-                .backgroundColor(Color.Transparent)
-                .labelAndAxisLinePadding(12.dp)
-                .labelData { i ->
-                    val yVal = minY + i * ((maxY - minY) / steps)
-                    String.format(Locale.US, "%.1f", yVal)
-                }
-                .axisLineColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                .axisLabelColor(MaterialTheme.colorScheme.onSurface)
-                .build()
+                val xAxisData = AxisData.Builder()
+                    .axisStepSize(calculatedStepSize)
+                    .backgroundColor(Color.Transparent)
+                    .steps(numSteps)
+                    .labelData { index -> dayLabels.getOrElse(index) { "" } }
+                    .labelAndAxisLinePadding(8.dp)
+                    .axisLineColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                    .axisLabelColor(MaterialTheme.colorScheme.onSurface)
+                    .build()
 
-            val lineChartData = LineChartData(
-                linePlotData = LinePlotData(
-                    lines = listOf(
-                        Line(
-                            dataPoints = dataPoints,
-                            lineStyle = LineStyle(
-                                color = lineColor,
-                                lineType = LineType.SmoothCurve()
-                            ),
-                            intersectionPoint = IntersectionPoint(
-                                color = lineColor
-                            ),
-                            selectionHighlightPoint = SelectionHighlightPoint(
-                                color = lineColor
-                            ),
-                            selectionHighlightPopUp = SelectionHighlightPopUp(
-                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                labelColor = MaterialTheme.colorScheme.onSurface,
-                                labelSize = 12.sp
-                            ),
-                            shadowUnderLine = ShadowUnderLine(
-                                color = lineColor.copy(alpha = 0.15f)
+                val yAxisData = AxisData.Builder()
+                    .steps(steps)
+                    .backgroundColor(Color.Transparent)
+                    .labelAndAxisLinePadding(12.dp)
+                    .labelData { i ->
+                        val yVal = minY + i * ((maxY - minY) / steps)
+                        String.format(Locale.US, "%.1f", yVal)
+                    }
+                    .axisLineColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                    .axisLabelColor(MaterialTheme.colorScheme.onSurface)
+                    .build()
+
+                val lineChartData = LineChartData(
+                    linePlotData = LinePlotData(
+                        lines = listOf(
+                            Line(
+                                dataPoints = dataPoints,
+                                lineStyle = LineStyle(
+                                    color = lineColor,
+                                    lineType = LineType.SmoothCurve()
+                                ),
+                                intersectionPoint = IntersectionPoint(
+                                    color = lineColor
+                                ),
+                                selectionHighlightPoint = SelectionHighlightPoint(
+                                    color = lineColor
+                                ),
+                                selectionHighlightPopUp = SelectionHighlightPopUp(
+                                    backgroundColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurface,
+                                    labelSize = 12.sp
+                                ),
+                                shadowUnderLine = ShadowUnderLine(
+                                    color = lineColor.copy(alpha = 0.15f)
+                                )
                             )
                         )
-                    )
-                ),
-                xAxisData = xAxisData,
-                yAxisData = yAxisData,
-                gridLines = GridLines(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                ),
-                backgroundColor = Color.Transparent
-            )
+                    ),
+                    xAxisData = xAxisData,
+                    yAxisData = yAxisData,
+                    gridLines = GridLines(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    ),
+                    backgroundColor = Color.Transparent
+                )
 
-            LineChart(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(chartHeight),
-                lineChartData = lineChartData
-            )
+                LineChart(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(chartHeight),
+                    lineChartData = lineChartData
+                )
+            }
         }
     }
 }
-

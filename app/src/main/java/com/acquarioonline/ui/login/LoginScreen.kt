@@ -29,6 +29,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.acquarioonline.R
 import com.acquarioonline.ui.AppViewModelProvider
+import com.acquarioonline.ui.User.CredentialChangerSheet
 import com.acquarioonline.ui.components.FormTextField
 import com.acquarioonline.ui.components.PasswordVisibilityToggle
 import com.acquarioonline.ui.login.BiometricPromptManager.BiometricResult
@@ -68,15 +70,20 @@ fun LoginScreen(
 
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var showPassword by rememberSaveable { mutableStateOf(false) }
+    var showPassword by remember{ mutableStateOf(false) }
     var showChangePasswordDialog by remember {mutableStateOf(false)}
     var enableChangePassword by remember{mutableStateOf(false)}
+    var showCredentialChanger by remember{mutableStateOf(false)}
     var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     val isSignUp = state.mode == AuthMode.SignUp
     val confirmTitle = stringResource(R.string.confirm_identity)
     val confirmMessage = stringResource(R.string.confirm_identity_message)
     val changePassword = stringResource(R.string.change_password)
     val confirmIdentity = stringResource(R.string.confirm_identity_message)
+    var valueError by remember { mutableStateOf<Int?>(null) }
+    var confirmError by remember { mutableStateOf<Int?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -181,32 +188,19 @@ fun LoginScreen(
 
     if (showChangePasswordDialog) {
 
+
         AlertDialog(
-            onDismissRequest = { showChangePasswordDialog = false },
-            title = { Text(changePassword) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.insert_new_password)+"${state.email}")
-                    Spacer(Modifier.height(8.dp))
-                    FormTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        label = stringResource(R.string.new_password),
-                        keyboardType = KeyboardType.Password
-                    )
-                }
-            },
+            onDismissRequest = { showChangePasswordDialog= false },
+            title = { Text(stringResource(R.string.new_password)) },
+            text = { stringResource(R.string.new_password_confirm) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (newPassword.length >= 6) {
-                            //viewModel.changePassword(state.email, newPassword)
-                            showChangePasswordDialog = false
-                           enableChangePassword = true
-                        }
+                        showChangePasswordDialog=false
+                        enableChangePassword = true
                     }
                 ) {
-                    Text(stringResource(R.string.save))
+                    Text(stringResource(R.string.edit))
                 }
             },
             dismissButton = {
@@ -215,6 +209,7 @@ fun LoginScreen(
                 }
             }
         )
+
     }
 
     LaunchedEffect(enableChangePassword) {
@@ -235,8 +230,9 @@ fun LoginScreen(
             })
             LaunchedEffect(biometricResult){
                 if(biometricResult is BiometricResult.AuthSuccess){
-                    viewModel.changePassword(state.email, newPassword)
                     enableChangePassword=false
+                    showCredentialChanger=true
+
                 }
                 if(biometricResult is BiometricResult.AuthNotSet ){
                     if(Build.VERSION.SDK_INT>=30){
@@ -293,6 +289,49 @@ fun LoginScreen(
         }
     }
 
+    if (showCredentialChanger) {
+        CredentialChangerSheet(
+            toChange ="password",
+            value = newPassword,
+            confirmValue = confirmPassword,
+            onValueChange = {
+                newPassword = it
+                valueError = null
+                viewModel.clearError()
+            },
+            onConfirmValueChange = {
+                confirmPassword = it
+                confirmError = null
+                viewModel.clearError()
+            },
+            valueError = valueError ?: state.passwordError,
+            confirmError = confirmError,
+            onDismiss = {
+                showCredentialChanger = false
+                newPassword = ""
+                confirmPassword = ""
+                valueError = null
+                confirmError = null
+            },
+            onConfirm = {
+                valueError = null
+                confirmError = null
+                if (newPassword.length < 6) {
+                    valueError = R.string.error_password_short
+                    return@CredentialChangerSheet
+                }
+                if (newPassword != confirmPassword) {
+                    confirmError = R.string.error_passwords_mismatch
+                    return@CredentialChangerSheet
+                }
+                viewModel.updatePassword(state.email,newPassword) {
+                        showCredentialChanger = false
+                        newPassword = ""
+                        confirmPassword = ""
+                }
 
+            }
+        )
+    }
 
 }

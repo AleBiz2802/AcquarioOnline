@@ -148,7 +148,7 @@
     <string name="chart_avg_per_day">Daily average</string>
     <string name="chart_temperature">Temperature (°C)</string>
     <string name="chart_water_level">Water Level (cm)</string>
-    <string name="chart_no_data">No measurements saved in the database for this aquarium yet. Data will be recorded automatically when sensors arrive.</string>
+    <string name="chart_no_data">No measurements saved in the database for this aquarium yet.</string>
     <string name="pumps">Pumps</string>
     <string name="draining">Draining</string>
     <string name="filling">Filling</string>
