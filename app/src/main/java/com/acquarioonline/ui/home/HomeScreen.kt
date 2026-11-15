@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.AlertDialog
@@ -73,6 +74,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.acquarioonline.R
+import com.acquarioonline.ui.summary.SummaryScreen
 import com.acquarioonline.data.auth.UserProfile
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.ui.AppViewModelProvider
@@ -170,6 +172,16 @@ fun HomeScreen(
                         selected = state.showChartsDialog,
                         onClick = {
                             viewModel.onOpenChartsDrawerClicked()
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    NavigationDrawerItem(
+                        label = { Text(stringResource(R.string.summary)) },
+                        icon = { Icon(Icons.Filled.Summarize, contentDescription = null) },
+                        selected = state.showSummaryScreen,
+                        onClick = {
+                            viewModel.onOpenSummaryDrawerClicked()
                             scope.launch { drawerState.close() }
                         },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -312,6 +324,15 @@ fun HomeScreen(
             dbSensorData = state.chartSensorDataList,
             onAquariumSelected = viewModel::onSelectAquariumForCharts,
             onDismiss = viewModel::dismissCharts
+        )
+    }
+    if (state.showSummaryScreen) {
+        SummaryScreen(
+            aquariums = state.availableAquariums,
+            aquarium = state.selectedAquariumToSummarize,
+            summaryElements = state.summarizableDataList,
+            onAquariumSelected = viewModel::onSelectAquariumToSummarize,
+            onDismiss = viewModel::dismissSummary
         )
     }
     if(showUserInfoScreen){

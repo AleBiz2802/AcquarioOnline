@@ -1,7 +1,7 @@
 package com.acquarioonline.data.repository
 
 import com.acquarioonline.data.influxQuerier.InfluxSensorData
-import com.acquarioonline.data.influxQuerier.getSensorData
+import com.acquarioonline.data.influxQuerier.*
 import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.AquariumConfigDao
 import com.acquarioonline.data.local.AquariumConfigEntity
@@ -59,6 +59,15 @@ class AquariumRepository(
     suspend fun fetchSensorDataForAquarium(aquarium: Aquarium): List<InfluxSensorData> {
         return try {
             getSensorData(aquarium.name)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    suspend fun fetchSummarizablesForAquarium(aquarium: Aquarium): List<Summarizable> {
+        return try {
+            getSummarizable().filter {
+                it.aquariumName.trim().equals(aquarium.name.trim(), ignoreCase = true)
+            }
         } catch (e: Exception) {
             emptyList()
         }

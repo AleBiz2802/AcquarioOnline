@@ -7,6 +7,7 @@ import com.acquarioonline.R
 import com.acquarioonline.data.auth.AuthRepository
 import com.acquarioonline.data.auth.UserProfile
 import com.acquarioonline.data.influxQuerier.InfluxSensorData
+import com.acquarioonline.data.influxQuerier.Summarizable
 import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.Section
 import com.acquarioonline.data.mqtt.MqttManager
@@ -39,8 +40,11 @@ data class HomeUiState(
     val selectedSectionId: Long? = null,
     val isMapSelected: Boolean = false,
     val showChartsDialog: Boolean = false,
+    val showSummaryScreen: Boolean = false,
     val selectedAquariumForCharts: Aquarium? = null,
+    val selectedAquariumToSummarize: Aquarium? = null,
     val chartSensorDataList: List<InfluxSensorData> = emptyList(),
+    val summarizableDataList: List<Summarizable> = emptyList(),
     val availableAquariums: List<Aquarium> = emptyList(),
     val form: SectionFormState = SectionFormState(),
     val password: String? = null
@@ -60,8 +64,14 @@ class HomeViewModel(
     private val form = MutableStateFlow(SectionFormState())
 
     private val showChartsDialog = MutableStateFlow(false)
+    private val showSummaryScreen = MutableStateFlow(false)
     private val selectedAquariumForCharts = MutableStateFlow<Aquarium?>(null)
+    private val selectedAquariumToSummarize = MutableStateFlow<Aquarium?>(null)
+
+
     private val chartSensorDataList = MutableStateFlow<List<InfluxSensorData>>(emptyList())
+    private val summaryAquariumDataList = MutableStateFlow<List<Summarizable>>(emptyList())
+
     private val availableAquariums = MutableStateFlow<List<Aquarium>>(emptyList())
 
     private val user = auth.currentUser
@@ -73,9 +83,24 @@ class HomeViewModel(
         val showDialog: Boolean,
         val selectedAquarium: Aquarium?,
         val chartData: List<InfluxSensorData>,
-        val availableAquariums: List<Aquarium>
+        val availableAquariumsToPlot: List<Aquarium>
     )
 
+    private data class SummaryState(
+        val showScreen: Boolean,
+        val selectedAquarium: Aquarium?,
+        val summaryData: List<Summarizable>,
+        val availableAquariumsToSummarize: List<Aquarium>
+    )
+
+    private val summaryState = combine(
+        showSummaryScreen,
+        selectedAquariumToSummarize,
+        summaryAquariumDataList,
+        availableAquariums
+    ) { dialog, selected, data, available ->
+        SummaryState(dialog, selected, data, available)
+    }
     private val chartsState = combine(
         showChartsDialog,
         selectedAquariumForCharts,
@@ -89,13 +114,17 @@ class HomeViewModel(
         combine(user, sections, selectedId, isMapSelected, form) { u, s, sel, map, f ->
             HomeUiState(user = u, sections = s, selectedSectionId = sel, isMapSelected = map, form = f)
         },
-        chartsState
-    ) { baseState, charts ->
+        chartsState,
+        summaryState
+    ) { baseState, charts, summary ->
         baseState.copy(
             showChartsDialog = charts.showDialog,
             selectedAquariumForCharts = charts.selectedAquarium,
             chartSensorDataList = charts.chartData,
-            availableAquariums = charts.availableAquariums
+            availableAquariums = charts.availableAquariumsToPlot,
+            showSummaryScreen = summary.showScreen,
+            selectedAquariumToSummarize = summary.selectedAquarium,
+            summarizableDataList = summary.summaryData
         )
     }.stateIn(
         scope = viewModelScope,
@@ -143,6 +172,35 @@ class HomeViewModel(
             val data = repository.fetchSensorDataForAquarium(aquarium)
             chartSensorDataList.value = data
         }
+    }
+    fun onSelectAquariumToSummarize(aquarium:Aquarium){
+        viewModelScope.launch {
+            selectedAquariumToSummarize.value = aquarium
+            val data = repository.fetchSummarizablesForAquarium(aquarium)
+            summaryAquariumDataList.value = data
+        }
+    }
+
+    fun onOpenSummaryDrawerClicked() {
+        viewModelScope.launch {
+            val allAquariums = mutableListOf<Aquarium>()
+            for (section in uiState.value.sections) {
+                allAquariums.addAll(repository.getAquariumsBySection(section.id))
+            }
+            availableAquariums.value = allAquariums
+            showSummaryScreen.value = true
+            val first = allAquariums.firstOrNull()
+            if (first != null) {
+                onSelectAquariumToSummarize(first)
+            }
+        }
+    }
+
+    fun dismissSummary() {
+        showSummaryScreen.value = false
+        selectedAquariumToSummarize.value = null
+        summaryAquariumDataList.value = emptyList()
+        availableAquariums.value = emptyList()
     }
 
     fun dismissCharts() {

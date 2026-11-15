@@ -293,7 +293,6 @@ fun SectionScreen(
                 onToggleAuto = { auto ->
                     viewModel.onAutoModeToggle(auto)
                 },
-                onShowSummary = {viewModel.onShowSummaryClicked(aquarium)},
                 onActionClick = { topic, payload ->
                     viewModel.onManualActionClicked(topic, payload, aquarium.id)
                 },
@@ -312,17 +311,6 @@ fun SectionScreen(
                 sensorData = sensorData,
                 config = config,
                 onDismiss = viewModel::dismissSensorsForm
-            )
-        }
-    }
-
-    if(state.summaryForm.visible){
-        val aquarium = state.summaryForm.aquarium
-        if(aquarium != null){
-            SummarySheet(
-                aquarium,
-                summaryElements = state.summarizables.toMutableList(),
-                onDismiss = viewModel::dismissSummaryForm
             )
         }
     }
@@ -804,7 +792,6 @@ private fun AquariumControlDialog(
     form: AquariumControlFormState,
     config: AquariumConfigEntity?,
     onToggleAuto: (Boolean) -> Unit,
-    onShowSummary: () -> Unit,
     onActionClick: (String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -863,39 +850,7 @@ private fun AquariumControlDialog(
 
 
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if(isSystemInDarkTheme()) Color(0xFF003A48) else Color(0xFFE0F2FE),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onShowSummary() }
-                ){
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Nightlight,
-                                contentDescription = "Riepilogo",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(text = stringResource(R.string.summary), style = MaterialTheme.typography.bodyLarge)
-                        }
-                        IconButton(onClick = onShowSummary) {
-                            Icon(
-                                imageVector = Icons.Filled.ChevronRight,
-                                contentDescription = "Riepilogo"
-                            )
-                        }
-                    }
-                }
+
                 if (!form.isAutomatic) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     AccensioneButton(

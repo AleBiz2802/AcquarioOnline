@@ -84,12 +84,6 @@ data class AquariumSensorsFormState(
     val aquarium: Aquarium? = null
 )
 
-data class AquariumSummariesFormState(
-    val visible: Boolean = false,
-    val aquarium: Aquarium? = null
-)
-
-
 data class SectionUiState(
     val section: Section? = null,
     val aquariums: List<Aquarium> = emptyList(),
@@ -97,11 +91,9 @@ data class SectionUiState(
     val configForm: AquariumConfigFormState = AquariumConfigFormState(),
     val controlForm: AquariumControlFormState = AquariumControlFormState(),
     val sensorsForm: AquariumSensorsFormState = AquariumSensorsFormState(),
-    val summaryForm : AquariumSummariesFormState = AquariumSummariesFormState(),
     val sensorDataMap: Map<Long, SensorData> = emptyMap(),
     val dbSensorDataList: List<InfluxSensorData> = emptyList(),
     val configMap: Map<Long, AquariumConfigEntity> = emptyMap(),
-    val summarizables: List<Summarizable> = emptyList(),
     val bleStatus: BleStatus = BleStatus.Idle
 )
 
@@ -120,12 +112,10 @@ class SectionViewModel(
     private val controlForm = MutableStateFlow(AquariumControlFormState())
     private val sensorsForm = MutableStateFlow(AquariumSensorsFormState())
 
-    private val summaryForm = MutableStateFlow(AquariumSummariesFormState())
     private val sensorDataMap = MutableStateFlow<Map<Long, SensorData>>(emptyMap())
     private val dbSensorDataList = MutableStateFlow<List< InfluxSensorData>>(emptyList())
     private val configMap = MutableStateFlow<Map<Long, AquariumConfigEntity>>(emptyMap())
     private val bleStatus = MutableStateFlow<BleStatus>(BleStatus.Idle)
-    private var summarizables = MutableStateFlow<List<Summarizable>>(emptyList())
     private var provisionJob: Job? = null
 
     private val _messages = Channel<Int>(Channel.BUFFERED)
@@ -140,18 +130,14 @@ class SectionViewModel(
         val configMap: Map<Long, AquariumConfigEntity>,
         val status: BleStatus
     )
-    private data class Record3(
-        val summarizables: List<Summarizable>
-    )
     val uiState: StateFlow<SectionUiState> = combine(
         repository.observeSection(sectionId),
         repository.observeAquariums(sectionId),
-        combine(form, configForm, controlForm,summaryForm) { f, cfg, ctrl,smf -> Quad(f, cfg, ctrl,smf) },
+        combine(form, configForm, controlForm) { f, cfg, ctrl -> Triple(f, cfg, ctrl) },
         combine(sensorsForm, sensorDataMap, dbSensorDataList, configMap,) { sens, data, dbData, cm ->
             Record2(sens, data, dbData, cm, bleStatus.value)
-        },
-        summarizables.map{s -> Record3(s)}
-    ) { section, aquariums, t1, t2,t3->
+        }
+    ) { section, aquariums, t1, t2 ->
         SectionUiState(
             section = section,
             aquariums = aquariums,
@@ -160,10 +146,8 @@ class SectionViewModel(
             controlForm = t1.third,
             sensorsForm = t2.sens,
             sensorDataMap = t2.data,
-            summaryForm = t1.fourth,
             dbSensorDataList = t2.dbData,
             configMap = t2.configMap,
-            summarizables = t3.summarizables,
             bleStatus = t2.status
         )
     }.stateIn(
@@ -222,14 +206,6 @@ class SectionViewModel(
                     }
                     sensorDataMap.update { it + (aquarium.id to updatedSensors) }
                 }
-            }
-        }
-        viewModelScope.launch {
-            try {
-                summarizables.value= getSummarizable()
-
-            } catch (e: Exception) {
-                Log.e("SectionViewModel", "Errore InfluxDB:", e)
             }
         }
     }
@@ -462,30 +438,16 @@ class SectionViewModel(
             )
         }
     }
-    fun onShowSummaryClicked(aquarium: Aquarium){
-
-        summaryForm.value = AquariumSummariesFormState(true,aquarium)
-        viewModelScope.launch {
-            try {
-                summarizables.value = getSummarizable()
-            } catch (e: Exception) {
-                Log.e("SectionViewModel", "Errore InfluxDB:", e)
-            }
-        }
-    }
     fun onUltraSoundListening(aquarium: Aquarium) {
-        mqttManager.publish("acquari/${aquarium.name}/campionaUltraSuoni", "attiva",0)
-        aquarium.calibrated=true
+        mqttManager.publish("acquari/${aquarium.name}/campionaUltraSuoni", "attiva", 0)
+        aquarium.calibrated = true
         viewModelScope.launch {
-            repository.updateAquariumCalibration(aquarium.id,aquarium.calibrated)
+            repository.updateAquariumCalibration(aquarium.id, aquarium.calibrated)
         }
-
     }
+
     fun dismissSensorsForm() {
         sensorsForm.value = AquariumSensorsFormState()
-    }
-    fun dismissSummaryForm() {
-      summaryForm.value= AquariumSummariesFormState()
     }
 
 
