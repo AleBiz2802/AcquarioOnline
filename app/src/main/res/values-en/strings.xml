@@ -202,4 +202,5 @@
     <string name="userAccount">User profile</string>
     <string name="back">Back</string>
     <string name="error_passwords_mismatch">Passwords do not match</string>
+    <string name="nothingToPlot">Zero tanks to plot</string>
 </resources>

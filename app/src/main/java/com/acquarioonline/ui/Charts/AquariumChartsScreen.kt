@@ -202,108 +202,122 @@ fun AquariumChartsScreen(
                             }
                         }
                     }
-                }
 
-                // Sottosezioni: Valori Massimi, Valori Minimi, Media
-                TabRow(
-                    selectedTabIndex = selectedSubSection.ordinal,
-                    containerColor = Color.Transparent
-                ) {
-                    Tab(
-                        selected = selectedSubSection == ChartSubSection.MASSIMI,
-                        onClick = { selectedSubSection = ChartSubSection.MASSIMI },
-                        text = { Text(stringResource(R.string.chart_max), fontSize = 13.sp) }
-                    )
-                    Tab(
-                        selected = selectedSubSection == ChartSubSection.MINIMI,
-                        onClick = { selectedSubSection = ChartSubSection.MINIMI },
-                        text = { Text(stringResource(R.string.chart_min), fontSize = 13.sp) }
-                    )
-                    Tab(
-                        selected = selectedSubSection == ChartSubSection.MEDIA,
-                        onClick = { selectedSubSection = ChartSubSection.MEDIA },
-                        text = { Text(stringResource(R.string.chart_avg), fontSize = 13.sp) }
-                    )
-                }
 
-                if (dbSensorData.isEmpty()) {
+                    // Sottosezioni: Valori Massimi, Valori Minimi, Media
+                    TabRow(
+                        selectedTabIndex = selectedSubSection.ordinal,
+                        containerColor = Color.Transparent
+                    ) {
+                        Tab(
+                            selected = selectedSubSection == ChartSubSection.MASSIMI,
+                            onClick = { selectedSubSection = ChartSubSection.MASSIMI },
+                            text = { Text(stringResource(R.string.chart_max), fontSize = 13.sp) }
+                        )
+                        Tab(
+                            selected = selectedSubSection == ChartSubSection.MINIMI,
+                            onClick = { selectedSubSection = ChartSubSection.MINIMI },
+                            text = { Text(stringResource(R.string.chart_min), fontSize = 13.sp) }
+                        )
+                        Tab(
+                            selected = selectedSubSection == ChartSubSection.MEDIA,
+                            onClick = { selectedSubSection = ChartSubSection.MEDIA },
+                            text = { Text(stringResource(R.string.chart_avg), fontSize = 13.sp) }
+                        )
+                    }
+
+                    if (dbSensorData.isEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = stringResource(R.string.chart_no_data),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
+                    // Grafico 1: Temperatura
+                    SingleChartCard(
+                        title = stringResource(R.string.chart_temperature),
+                        subTitle = when (selectedSubSection) {
+                            ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
+                            ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
+                            ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
+                        },
+                        dataPoints = historicalData.mapIndexed { index, item ->
+                            val value = when (selectedSubSection) {
+                                ChartSubSection.MASSIMI -> item.tempMax
+                                ChartSubSection.MINIMI -> item.tempMin
+                                ChartSubSection.MEDIA -> item.tempAvg
+                            }
+                            Point(index.toFloat(), value)
+                        },
+                        dayLabels = historicalData.map { it.dayLabel },
+                        lineColor = Color(0xFFEF4444)
+                    )
+
+                    // Grafico 2: pH
+                    SingleChartCard(
+                        title = "pH",
+                        subTitle = when (selectedSubSection) {
+                            ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
+                            ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
+                            ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
+                        },
+                        dataPoints = historicalData.mapIndexed { index, item ->
+                            val value = when (selectedSubSection) {
+                                ChartSubSection.MASSIMI -> item.phMax
+                                ChartSubSection.MINIMI -> item.phMin
+                                ChartSubSection.MEDIA -> item.phAvg
+                            }
+                            Point(index.toFloat(), value)
+                        },
+                        dayLabels = historicalData.map { it.dayLabel },
+                        lineColor = Color(0xFF3B82F6)
+                    )
+
+                    // Grafico 3: Livello Acqua
+                    SingleChartCard(
+                        title = stringResource(R.string.chart_water_level),
+                        subTitle = when (selectedSubSection) {
+                            ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
+                            ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
+                            ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
+                        },
+                        dataPoints = historicalData.mapIndexed { index, item ->
+                            val value = when (selectedSubSection) {
+                                ChartSubSection.MASSIMI -> item.lvlMax
+                                ChartSubSection.MINIMI -> item.lvlMin
+                                ChartSubSection.MEDIA -> item.lvlAvg
+                            }
+                            Point(index.toFloat(), value)
+                        },
+                        dayLabels = historicalData.map { it.dayLabel },
+                        lineColor = Color(0xFF10B981)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }else{
+
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        color = if (isSystemInDarkTheme()) Color(0xFF003A48) else Color(0xFFE0F2FE),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = stringResource(R.string.chart_no_data),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(12.dp)
+                            text = stringResource(R.string.nothingToPlot),
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyLarge
                         )
                     }
+
                 }
-
-                // Grafico 1: Temperatura
-                SingleChartCard(
-                    title = stringResource(R.string.chart_temperature),
-                    subTitle = when (selectedSubSection) {
-                        ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
-                        ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
-                        ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
-                    },
-                    dataPoints = historicalData.mapIndexed { index, item ->
-                        val value = when (selectedSubSection) {
-                            ChartSubSection.MASSIMI -> item.tempMax
-                            ChartSubSection.MINIMI -> item.tempMin
-                            ChartSubSection.MEDIA -> item.tempAvg
-                        }
-                        Point(index.toFloat(), value)
-                    },
-                    dayLabels = historicalData.map { it.dayLabel },
-                    lineColor = Color(0xFFEF4444)
-                )
-
-                // Grafico 2: pH
-                SingleChartCard(
-                    title = "pH",
-                    subTitle = when (selectedSubSection) {
-                        ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
-                        ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
-                        ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
-                    },
-                    dataPoints = historicalData.mapIndexed { index, item ->
-                        val value = when (selectedSubSection) {
-                            ChartSubSection.MASSIMI -> item.phMax
-                            ChartSubSection.MINIMI -> item.phMin
-                            ChartSubSection.MEDIA -> item.phAvg
-                        }
-                        Point(index.toFloat(), value)
-                    },
-                    dayLabels = historicalData.map { it.dayLabel },
-                    lineColor = Color(0xFF3B82F6)
-                )
-
-                // Grafico 3: Livello Acqua
-                SingleChartCard(
-                    title = stringResource(R.string.chart_water_level),
-                    subTitle = when (selectedSubSection) {
-                        ChartSubSection.MASSIMI -> stringResource(R.string.chart_max_per_day)
-                        ChartSubSection.MINIMI -> stringResource(R.string.chart_min_per_day)
-                        ChartSubSection.MEDIA -> stringResource(R.string.chart_avg_per_day)
-                    },
-                    dataPoints = historicalData.mapIndexed { index, item ->
-                        val value = when (selectedSubSection) {
-                            ChartSubSection.MASSIMI -> item.lvlMax
-                            ChartSubSection.MINIMI -> item.lvlMin
-                            ChartSubSection.MEDIA -> item.lvlAvg
-                        }
-                        Point(index.toFloat(), value)
-                    },
-                    dayLabels = historicalData.map { it.dayLabel },
-                    lineColor = Color(0xFF10B981)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
-
 }
 
 

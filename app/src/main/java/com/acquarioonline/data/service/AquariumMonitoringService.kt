@@ -179,15 +179,11 @@ class AquariumMonitoringService : Service() {
                         "mqttPyLogic"->{
                             if(willValue=="offline"){
                                 notificationHelper.showStateNotification(getString(R.string.logic_service),getString(R.string.service_state),getString(R.string.service_off))
-                            }else if(willValue=="online"){
-                                notificationHelper.showStateNotification(getString(R.string.logic_service),getString(R.string.service_state),getString(R.string.service_on))
                             }
                         }
                         "mqttPyDbManager"->{
                             if(willValue=="offline"){
                                 notificationHelper.showStateNotification(getString(R.string.db_service),getString(R.string.service_state),getString(R.string.service_off))
-                            }else if(willValue=="online"){
-                                notificationHelper.showStateNotification(getString(R.string.db_service),getString(R.string.service_state),getString(R.string.service_on))
                             }
                         }
 

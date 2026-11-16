@@ -203,4 +203,5 @@
     <string name="userAccount">Profil utilisateur</string>
     <string name="back">Retour</string>
     <string name="error_passwords_mismatch">Les deux mots de passe sont différents</string>
+    <string name="nothingToPlot">Aucun aquarium a illustrer</string>
 </resources>

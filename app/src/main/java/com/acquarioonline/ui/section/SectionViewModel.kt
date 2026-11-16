@@ -282,12 +282,13 @@ class SectionViewModel(
 
     fun deleteAquarium(aquarium: Aquarium) {
         viewModelScope.launch {
+            repository.deleteAquarium(aquarium)
             try{
                 deleteAquariumData(aquarium.name)
             }catch(e:Exception){
                 Log.e("SectionViewModel", "Errore InfluxDB non bloccante:", e)
             }
-            repository.deleteAquarium(aquarium)
+
             mqttManager.publish("elimina", aquarium.name)
 
         }
