@@ -1,6 +1,10 @@
 package com.acquarioonline.ui.section
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -163,11 +167,21 @@ fun SectionScreen(
                 text = { Text(stringResource(R.string.activate_bluetooth_message)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+                        } else {
+                            true
+                        }
+
+                        if (hasPermission) {
+                            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        } else {
+                            permissionLauncher.launch(arrayOf(Manifest.permission.BLUETOOTH_CONNECT))
+                        }
+
                         showAddAquarium = false
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     }) { Text(stringResource(R.string.enable)) }
-
                 },
                 dismissButton = {
                     TextButton(onClick = {showAddAquarium = false}) { Text(stringResource(R.string.cancel)) }
