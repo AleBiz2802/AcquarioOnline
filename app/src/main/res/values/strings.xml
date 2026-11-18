@@ -221,4 +221,7 @@
     <string name="back">Indietro</string>
     <string name="error_passwords_mismatch">Le due password sono diverse</string>
     <string name="nothingToPlot">Nessun acquario disponibile</string>
+    <string name="position_error">Geolocalizzazione fallita</string>
+    <string name="position_error_message">La sezione viene creata ma non verrà inserita sulla mappa</string>
+
 </resources>

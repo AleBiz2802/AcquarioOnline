@@ -203,4 +203,6 @@
     <string name="back">Back</string>
     <string name="error_passwords_mismatch">Passwords do not match</string>
     <string name="nothingToPlot">Zero tanks to plot</string>
+    <string name="position_error">Geolocation failed</string>
+    <string name="position_error_message">The section will be created but will not be placed on the map</string>
 </resources>

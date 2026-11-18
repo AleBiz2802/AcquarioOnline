@@ -242,6 +242,7 @@ class HomeViewModel(
             repository.addSection(uid, current.name.trim(), current.brokerAddress.trim(), current.latitude, current.longitude)
             form.value = SectionFormState()
         }
+
     }
 
     fun deleteSection(section: Section) {

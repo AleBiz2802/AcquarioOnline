@@ -205,4 +205,7 @@
     <string name="back">Zurück</string>
     <string name="error_passwords_mismatch">Die Passwörter stimmen nicht überein</string>
     <string name="nothingToPlot">kein Aquarium verfügbar</string>
+    <string name="position_error">Geolokalisierung fehlgeschlagen</string>
+    <string name="position_error_message">Der Abschnitt wird erstellt, aber nicht auf der Karte eingetragen</string>
+
 </resources>

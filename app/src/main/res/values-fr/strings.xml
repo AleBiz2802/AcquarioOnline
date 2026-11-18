@@ -204,4 +204,7 @@
     <string name="back">Retour</string>
     <string name="error_passwords_mismatch">Les deux mots de passe sont différents</string>
     <string name="nothingToPlot">Aucun aquarium a illustrer</string>
+    <string name="position_error">Échec de la géolocalisation</string>
+    <string name="position_error_message">La section sera créée, mais ne sera pas placée sur la carte</string>
+
 </resources>

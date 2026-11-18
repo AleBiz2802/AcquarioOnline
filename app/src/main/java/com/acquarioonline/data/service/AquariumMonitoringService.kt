@@ -3,6 +3,7 @@ package com.acquarioonline.data.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+
 import android.app.Service
 import android.content.Intent
 import android.os.Build
@@ -146,6 +147,7 @@ class AquariumMonitoringService : Service() {
                         "ph" -> {
                             notificationHelper.showStateNotification(aquariumName, getString(R.string.actualPh),
                                 if (set!!) "${getString(R.string.PhOk)} : ${v}" else "${getString(R.string.PhNotOk)} : ${v}" )
+
                         }
                         "livelloAcqua" -> {
                             notificationHelper.showStateNotification(aquariumName, getString(R.string.actual_water_level),

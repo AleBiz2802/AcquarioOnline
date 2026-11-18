@@ -13,10 +13,8 @@ import com.acquarioonline.data.ble.BleError
 import com.acquarioonline.data.ble.BleProvisioner
 import com.acquarioonline.data.ble.BleStatus
 import com.acquarioonline.data.influxQuerier.InfluxSensorData
-import com.acquarioonline.data.influxQuerier.Summarizable
 import com.acquarioonline.data.influxQuerier.deleteAquariumData
 import com.acquarioonline.data.influxQuerier.getSensorData
-import com.acquarioonline.data.influxQuerier.getSummarizable
 import com.acquarioonline.data.local.Aquarium
 import com.acquarioonline.data.local.AquariumConfigEntity
 import com.acquarioonline.data.local.AquariumSensorData
@@ -96,8 +94,6 @@ data class SectionUiState(
     val configMap: Map<Long, AquariumConfigEntity> = emptyMap(),
     val bleStatus: BleStatus = BleStatus.Idle
 )
-
-data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 class SectionViewModel(
     private val sectionId: Long,
@@ -430,15 +426,6 @@ class SectionViewModel(
         sensorsForm.value = AquariumSensorsFormState(visible = true, aquarium = aquarium)
     }
 
-    fun List<AquariumSensorData>.toInfluxFormat(aquariumName: String): List<InfluxSensorData> {
-        return this.flatMap { roomRecord ->
-            listOfNotNull(
-                roomRecord.ph?.let { InfluxSensorData(aquariumName, roomRecord.actualDate.toString(), "ph", it) },
-                roomRecord.temperature?.let { InfluxSensorData(aquariumName, roomRecord.actualDate.toString(), "tmp", it) },
-                roomRecord.level?.let { InfluxSensorData(aquariumName, roomRecord.actualDate.toString(), "lvl", it) }
-            )
-        }
-    }
     fun onUltraSoundListening(aquarium: Aquarium) {
         mqttManager.publish("acquari/${aquarium.name}/campionaUltraSuoni", "attiva", 0)
         aquarium.calibrated = true

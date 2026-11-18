@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -37,6 +36,7 @@ import androidx.compose.material.icons.filled.Summarize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedCard
@@ -66,6 +66,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -90,7 +91,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     biometricPromptManager: BiometricPromptManager,
-    viewModel: HomeViewModel = viewModel(factory = com.acquarioonline.ui.AppViewModelProvider.Factory)
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
     val context = LocalContext.current
@@ -100,8 +101,8 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var sectionToDelete by remember { mutableStateOf<Section?>(null) }
     var showLanguageDialog by remember { mutableStateOf(false) }
-
     var showUserInfoScreen by remember { mutableStateOf(false) }
+    var showLocationError by remember {mutableStateOf(false )}
     val selected = state.selectedSection
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -110,11 +111,17 @@ fun HomeScreen(
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
-            fetchLocationAndOpenSheet(context, viewModel)
+          showLocationError=  fetchLocationAndOpenSheet(context, viewModel)
         } else {
             viewModel.onAddSectionClicked(null, null)
+            showLocationError=true
         }
     }
+
+        if(showLocationError){
+            AlertPosition { showLocationError=false }
+        }
+
 
     // Dalla schermata di una sezione o della mappa, "indietro" riporta alla home.
     BackHandler(enabled = (selected != null || state.isMapSelected) && !drawerState.isOpen) { viewModel.onHomeSelected() }
@@ -145,26 +152,6 @@ fun HomeScreen(
                         },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
-                    Text(
-                        text = stringResource(R.string.drawer_sections),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
-                    )
-                    state.sections.forEach { section ->
-                        NavigationDrawerItem(
-                            label = { Text(section.name) },
-                            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                            selected = section.id == selected?.id,
-                            onClick = {
-                                viewModel.onSectionSelected(section.id)
-                                scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
-                    }
-
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
                     NavigationDrawerItem(
                         label = { Text(stringResource(R.string.charts)) },
@@ -300,7 +287,9 @@ fun HomeScreen(
             onNameChange = viewModel::onSectionNameChange,
             onBrokerChange = viewModel::onSectionBrokerChange,
             onDismiss = viewModel::dismissForm,
-            onConfirm = viewModel::saveSection
+            onConfirm =   viewModel::saveSection
+
+
         )
     }
 
@@ -359,10 +348,12 @@ fun HomeScreen(
             }
         )
     }
+
 }
 
+
 @SuppressLint("MissingPermission")
-private fun fetchLocationAndOpenSheet(context: Context, viewModel: HomeViewModel) {
+private fun fetchLocationAndOpenSheet(context: Context, viewModel: HomeViewModel): Boolean{
     try {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val gps = try { locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) } catch (e: Exception) { null }
@@ -375,6 +366,7 @@ private fun fetchLocationAndOpenSheet(context: Context, viewModel: HomeViewModel
         }
         if (best != null && (System.currentTimeMillis() - best.time) < 120_000) {
             viewModel.onAddSectionClicked(best.latitude, best.longitude)
+            return false
         } else {
             @Suppress("DEPRECATION")
             val listener = object : android.location.LocationListener {
@@ -389,26 +381,33 @@ private fun fetchLocationAndOpenSheet(context: Context, viewModel: HomeViewModel
                 override fun onProviderDisabled(provider: String) {}
             }
 
-            var requested = false
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, listener, context.mainLooper)
-                requested = true
-            }
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, listener, context.mainLooper)
-                requested = true
+
+
+            when{
+                locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)->{
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, listener, context.mainLooper)
+                }
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)->{
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0f, listener, context.mainLooper)
+                }
+                else -> {
+                    viewModel.onAddSectionClicked(null, null)
+                    return true
+                }
             }
 
-            if (!requested) {
-                if (best != null) {
-                    viewModel.onAddSectionClicked(best.latitude, best.longitude)
-                } else {
-                    viewModel.onAddSectionClicked(41.9028, 12.4964)
-                }
+
+            if (best != null) {
+                viewModel.onAddSectionClicked(best.latitude, best.longitude)
+                return false
+            } else {
+                viewModel.onAddSectionClicked(null, null)
+                return true
             }
         }
     } catch (e: Exception) {
-        viewModel.onAddSectionClicked(41.9028, 12.4964)
+        viewModel.onAddSectionClicked(null, null)
+        return true
     }
 }
 
@@ -540,4 +539,32 @@ private fun SectionList(
             }
         }
     }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlertPosition(
+    onDismiss: () -> Unit
+){
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0x33FF0000),
+        titleContentColor = Color(0xFFEF4444),
+
+        textContentColor = Color(0xFFEF4444),
+
+        title = { Text(stringResource(R.string.position_error)) },
+        text = {
+            Text(stringResource(R.string.position_error_message))
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFFEF4444)
+                )
+            ) {
+                Text(stringResource(R.string.close))
+            }
+        }
+    )
 }
